@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# INO_PORT=/dev/ttyUSB0
+INO_CPU=pro328
+
+DIR=ino-$1
+
+mkdir -p $DIR/src $DIR/lib
+[ ! -h $DIR/lib/Gameduino2 ] && ln -s ~/Arduino/libraries/Gameduino2 $DIR/lib
+cp $1.ino $DIR/src/
+cp converted-assets/${1}_assets.h $DIR/src/
+cd $DIR &&
+ino build -m $INO_CPU || exit
+# ino upload -m $INO_CPU -p $INO_PORT
