@@ -69,7 +69,7 @@ volatile char breakpoint; /* for debugger */
                                 
 /* User interface routines */
 void myputchar(char c) {
-#ifdef EMUPC    // JCB{
+#ifdef DUMPDEV    // JCB{
   fprintf(stderr, "%c", c);
 #endif    // }JCB
 }
@@ -194,7 +194,7 @@ C:if(m>I-M|m<M-I)d=98;                         /* mate holds to any depth  */
   if(z&&d>2)
    {*c='a'+(X&7);c[1]='8'-(X>>4);c[2]='a'+(Y&7);c[3]='8'-(Y>>4&7);c[4]=0;
     breakpoint=2;           /* AVR Studio 4 Breakpoint for moves, watch c[] */
-#ifdef EMUPC    // JCB{
+#ifdef DUMPDEV    // JCB{
     fprintf(stderr, "%2d ply, %9d searched, score=%6d by %c%c%c%c\n",d-1,N-S,m,
      'a'+(X&7),'8'-(X>>4),'a'+(Y&7),'8'-(Y>>4&7)); /* uncomment for Kibitz */   
 #else

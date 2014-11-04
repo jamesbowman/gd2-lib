@@ -104,7 +104,7 @@ void loop()
   GD.Vertex2ii(260, 170);
   GD.swap();  //' }f
   
-#ifndef EMUPC    // JCB
+#ifndef DUMPDEV    // JCB
   Serial.begin(9600);
   for (;;) {      //' g{
     GD.get_inputs();
@@ -118,7 +118,7 @@ void loop()
     GD.cmd_number((i % 16) * 30, (i / 16) * 17, 26, 0, i);
   }
   GD.swap();
-#ifndef EMUPC    // JCB
+#ifndef DUMPDEV    // JCB
   GD.get_inputs(); //' }h
   Serial.println(GD.inputs.tag);
 #endif          // JCB

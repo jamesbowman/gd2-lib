@@ -359,7 +359,7 @@ void setup()
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
   GD.BitmapSize(BILINEAR, REPEAT, REPEAT, 480, 272);
-#ifdef EMUPC    // JCB{
+#ifdef DUMPDEV    // JCB{
   // startMotion(240, 136);
   // trackMotion(240, 138);
 #endif          // }JCB
@@ -428,7 +428,7 @@ void loop()
   draw_edges();
   draw_navlight(0);
   GD.RestoreContext();
-#ifndef EMUPC // JCB{
+#ifndef DUMPDEV // JCB{
   GD.cmd_number(240, 7, 26, OPT_CENTER, micros() - t0);
 #else
   // GD.cmd_number(240, 7, 26, OPT_CENTER, t);

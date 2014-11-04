@@ -7,7 +7,7 @@
 #ifndef _GD2_H_INCLUDED
 #define _GD2_H_INCLUDED
 
-#if defined(RASPBERRY_PI) || defined(EMUPC)
+#if defined(RASPBERRY_PI) || defined(DUMPDEV)
 #include "wiring.h"
 #endif
 
@@ -29,7 +29,7 @@
 #define GD_STORAGE      4
 
 ////////////////////////////////////////////////////////////////////////
-#if !defined(RASPBERRY_PI) && !defined(EMUPC)
+#if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
 #define VERBOSE 0
 
 struct dirent {
@@ -488,7 +488,7 @@ private:
 
 extern GDClass GD;
 
-#if !defined(RASPBERRY_PI) && !defined(EMUPC)
+#if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
 class Reader {
 public:
   int openfile(const char *filename) {
@@ -861,7 +861,7 @@ class Poly {
     }
 };
 
-#if !defined(RASPBERRY_PI) && !defined(EMUPC)
+#if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
 class Streamer {
 public:
   void begin(const char *rawsamples,

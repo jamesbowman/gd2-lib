@@ -75,7 +75,7 @@ static int get_note() //' getnote{
     drawscreen(0);
     if ((1 <= GD.inputs.tag) && (GD.inputs.tag <= 4))
       pressed = GD.inputs.tag;
-#ifdef EMUPC    // JCB{
+#ifdef DUMPDEV    // JCB{
     pressed = 1;
 #endif          // }JCB
   }

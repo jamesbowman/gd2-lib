@@ -157,7 +157,7 @@ void loop()
 
   xscroll.run(GD.inputs.y > 240 && touching, GD.inputs.x);
   draw(bx);
-#ifdef EMUPC  // JCB{
+#ifdef DUMPDEV  // JCB{
   GD.RestoreContext();
   GD.ColorA(128);
   GD.Begin(POINTS);

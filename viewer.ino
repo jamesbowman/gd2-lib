@@ -125,7 +125,7 @@ static void showdir1(char directory[60][8], int num_jpgs, int yb, int sel)
   }
 }
 
-#ifdef EMUPC  // JCB{
+#ifdef DUMPDEV  // JCB{
 extern FILE *stimfile;
 #endif        // }JCB
 
@@ -138,7 +138,7 @@ void loop()
   scroller yscroll;
 
   {
-#ifdef EMUPC  // JCB{
+#ifdef DUMPDEV  // JCB{
     char fn[9];
     for (int i = 1; i < 40; i++) {
       sprintf(fn, "kitten%02d", i);
@@ -182,7 +182,7 @@ void loop()
     picked = GD.inputs.tag - 128;
   }
 
-#ifndef EMUPC // JCB
+#ifndef DUMPDEV // JCB
   GD.Clear();
   draw_progress();
 #else         // JCB{
@@ -199,7 +199,7 @@ void loop()
   GD.cmd_getprops(m_ptr, m_w, m_h);
   GD.finish();
 
-#ifndef EMUPC // JCB
+#ifndef DUMPDEV // JCB
   uint16_t w = GD.rd16(m_w);
   uint16_t h = GD.rd16(m_h);
 #else         // JCB{
@@ -215,7 +215,7 @@ void loop()
   float zoom = 0.3;
   int fadeout = 0;
 
-#ifdef EMUPC  // JCB{
+#ifdef DUMPDEV  // JCB{
   while (!feof(stimfile)) {
 #else         // }JCB
   while (1) {
