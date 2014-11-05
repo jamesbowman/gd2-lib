@@ -7,7 +7,7 @@ void setup() //' A{
   Serial.begin(1000000); // JCB
   GD.begin();
   GD.cmd_loadimage(0, 0);
-  GD.safeload("healsky3.jpg");
+  GD.load("healsky3.jpg");
 }
 
 void loop()

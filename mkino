@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# INO_PORT=/dev/ttyUSB0
-INO_CPU=pro328
+INO_PORT=/dev/ttyUSB4
+INO_CPU=uno
 
 DIR=ino-$1
 
@@ -11,4 +11,4 @@ cp $1.ino $DIR/src/
 cp converted-assets/${1}_assets.h $DIR/src/
 cd $DIR &&
 ino build -m $INO_CPU || exit
-# ino upload -m $INO_CPU -p $INO_PORT
+ino upload -m $INO_CPU -p $INO_PORT
