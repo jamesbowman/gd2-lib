@@ -863,7 +863,7 @@ static void welcome()
 {
   Streamer stream;
 
-  GD.load("nightw.gd2");
+  GD.safeload("nightw.gd2");
   byte fade = 0;
   int t;
 
