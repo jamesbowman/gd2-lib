@@ -463,6 +463,7 @@ public:
   void dumpscreen(void);
   byte load(const char *filename, void (*progress)(long, long) = NULL);
   void safeload(const char *filename);
+  void alert(const char *message);
 
   sdcard SD;
 
