@@ -287,11 +287,14 @@ void GDClass::ci(int32_t v) {
 }
 
 void GDClass::cs(const char *s) {
+  int count = 0;
   while (*s) {
     char c = *s++;
     GDTR.cmdbyte(c);
+    count++;
   }
   GDTR.cmdbyte(0);
+  align(count + 1);
 }
 
 void GDClass::copy(const PROGMEM uint8_t *src, int count) {
@@ -482,67 +485,78 @@ void GDClass::Vertex2ii(uint16_t x, uint16_t y, byte handle, byte cell) {
   cI(c);
 }
 
-void GDClass::fmtcmd(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  byte sz = 0;  // Only the low 2 bits matter
-  const char *s;
-
-  while (*fmt)
-    switch (*fmt++) {
-      case 'i':
-      case 'I':
-        cI(va_arg(ap, uint32_t));
-        break;
-      case 'h':
-      case 'H':
-        cH(va_arg(ap, unsigned int));
-        sz += 2;
-        break;
-      case 's':
-        s = va_arg(ap, const char*);
-        cs(s);
-        sz += strlen(s) + 1;
-        break;
-    }
-  align(sz);
-}
-
 void GDClass::cmd_append(uint32_t ptr, uint32_t num) {
   cFFFFFF(0x1e);
   cI(ptr);
   cI(num);
 }
 void GDClass::cmd_bgcolor(uint32_t c) {
-  fmtcmd("II", 0xffffff09UL, c);
+  cFFFFFF(0x09);
+  cI(c);
 }
 void GDClass::cmd_button(int16_t x, int16_t y, uint16_t w, uint16_t h, byte font, uint16_t options, const char *s) {
-  fmtcmd("IhhhhhHs", 0xffffff0dUL, x, y, w, h, font, options, s);
+  cFFFFFF(0x0d);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  ch(font);
+  cH(options);
+  cs(s);
 }
 void GDClass::cmd_calibrate(void) {
   cFFFFFF(0x15);
   cFFFFFF(0xff);
 }
 void GDClass::cmd_clock(int16_t x, int16_t y, int16_t r, uint16_t options, uint16_t h, uint16_t m, uint16_t s, uint16_t ms) {
-  fmtcmd("IhhhHHHHH", 0xffffff14UL, x, y, r, options, h, m, s, ms);
+  cFFFFFF(0x14);
+  ch(x);
+  ch(y);
+  ch(r);
+  cH(options);
+  cH(h);
+  cH(m);
+  cH(s);
+  cH(ms);
 }
 void GDClass::cmd_coldstart(void) {
   cFFFFFF(0x32);
 }
 void GDClass::cmd_dial(int16_t x, int16_t y, int16_t r, uint16_t options, uint16_t val) {
-  fmtcmd("IhhhHH", 0xffffff2dUL, x, y, r, options, val);
+  cFFFFFF(0x2d);
+  ch(x);
+  ch(y);
+  ch(r);
+  cH(options);
+  cH(val);
+  cH(0);
 }
 void GDClass::cmd_dlstart(void) {
   cFFFFFF(0x00);
 }
 void GDClass::cmd_fgcolor(uint32_t c) {
-  fmtcmd("II", 0xffffff0aUL, c);
+  cFFFFFF(0x0a);
+  cI(c);
 }
 void GDClass::cmd_gauge(int16_t x, int16_t y, int16_t r, uint16_t options, uint16_t major, uint16_t minor, uint16_t val, uint16_t range) {
-  fmtcmd("IhhhHHHHH", 0xffffff13UL, x, y, r, options, major, minor, val, range);
+  cFFFFFF(0x13);
+  ch(x);
+  ch(y);
+  ch(r);
+  cH(options);
+  cH(major);
+  cH(minor);
+  cH(val);
+  cH(range);
 }
 void GDClass::cmd_getmatrix(void) {
-  fmtcmd("Iiiiiii", 0xffffff33UL, 0, 0, 0, 0, 0, 0);
+  cFFFFFF(0x33);
+  ci(0);
+  ci(0);
+  ci(0);
+  ci(0);
+  ci(0);
+  ci(0);
 }
 void GDClass::cmd_getprops(uint32_t &ptr, uint32_t &w, uint32_t &h) {
   cFFFFFF(0x25);
@@ -554,32 +568,53 @@ void GDClass::cmd_getprops(uint32_t &ptr, uint32_t &w, uint32_t &h) {
   cI(0);
 }
 void GDClass::cmd_getptr(void) {
-  fmtcmd("II", 0xffffff23UL, 0);
+  cFFFFFF(0x23);
+  cI(0);
 }
 void GDClass::cmd_gradcolor(uint32_t c) {
-  fmtcmd("II", 0xffffff34UL, c);
+  cFFFFFF(0x34);
+  cI(c);
 }
 void GDClass::cmd_gradient(int16_t x0, int16_t y0, uint32_t rgb0, int16_t x1, int16_t y1, uint32_t rgb1) {
-  fmtcmd("IhhIhhI", 0xffffff0bUL, x0, y0, rgb0, x1, y1, rgb1);
+  cFFFFFF(0x0b);
+  ch(x0);
+  ch(y0);
+  cI(rgb0);
+  ch(x1);
+  ch(y1);
+  cI(rgb1);
 }
 void GDClass::cmd_inflate(uint32_t ptr) {
   cFFFFFF(0x22);
   cI(ptr);
 }
 void GDClass::cmd_interrupt(uint32_t ms) {
-  fmtcmd("II", 0xffffff02UL, ms);
+  cFFFFFF(0x02);
+  cI(ms);
 }
 void GDClass::cmd_keys(int16_t x, int16_t y, int16_t w, int16_t h, byte font, uint16_t options, const char*s) {
-  fmtcmd("IhhhhhHs", 0xffffff0eUL, x, y, w, h, font, options, s);
+  cFFFFFF(0x0e);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  ch(font);
+  cH(options);
+  cs(s);
 }
 void GDClass::cmd_loadidentity(void) {
   cFFFFFF(0x26);
 }
 void GDClass::cmd_loadimage(uint32_t ptr, int32_t options) {
-  fmtcmd("III", 0xffffff24UL, ptr, options);
+  cFFFFFF(0x24);
+  cI(ptr);
+  cI(options);
 }
 void GDClass::cmd_memcpy(uint32_t dest, uint32_t src, uint32_t num) {
-  fmtcmd("IIII", 0xffffff1dUL, dest, src, num);
+  cFFFFFF(0x1d);
+  cI(dest);
+  cI(src);
+  cI(num);
 }
 void GDClass::cmd_memset(uint32_t ptr, byte value, uint32_t num) {
   cFFFFFF(0x1b);
@@ -596,7 +631,9 @@ uint32_t GDClass::cmd_memcrc(uint32_t ptr, uint32_t num) {
   return r;
 }
 void GDClass::cmd_memwrite(uint32_t ptr, uint32_t num) {
-  fmtcmd("III", 0xffffff1aUL, ptr, num);
+  cFFFFFF(0x1a);
+  cI(ptr);
+  cI(num);
 }
 void GDClass::cmd_regwrite(uint32_t ptr, uint32_t val) {
   cFFFFFF(0x1a);
@@ -605,7 +642,6 @@ void GDClass::cmd_regwrite(uint32_t ptr, uint32_t val) {
   cI(val);
 }
 void GDClass::cmd_number(int16_t x, int16_t y, byte font, uint16_t options, uint32_t n) {
-  // fmtcmd("IhhhHi", 0xffffff2eUL, x, y, font, options, n);
   cFFFFFF(0x2e);
   ch(x);
   ch(y);
@@ -614,10 +650,20 @@ void GDClass::cmd_number(int16_t x, int16_t y, byte font, uint16_t options, uint
   ci(n);
 }
 void GDClass::cmd_progress(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t options, uint16_t val, uint16_t range) {
-  fmtcmd("IhhhhHHH", 0xffffff0fUL, x, y, w, h, options, val, range);
+  cFFFFFF(0x0f);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  cH(options);
+  cH(val);
+  cH(range);
+  cH(0);
 }
 void GDClass::cmd_regread(uint32_t ptr) {
-  fmtcmd("III", 0xffffff19UL, ptr, 0);
+  cFFFFFF(0x19);
+  cI(ptr);
+  cI(0);
 }
 void GDClass::cmd_rotate(int32_t a) {
   cFFFFFF(0x29);
@@ -632,10 +678,20 @@ void GDClass::cmd_screensaver(void) {
   cFFFFFF(0x2f);
 }
 void GDClass::cmd_scrollbar(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t options, uint16_t val, uint16_t size, uint16_t range) {
-  fmtcmd("IhhhhHHHH", 0xffffff11UL, x, y, w, h, options, val, size, range);
+  cFFFFFF(0x11);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  cH(options);
+  cH(val);
+  cH(size);
+  cH(range);
 }
 void GDClass::cmd_setfont(byte font, uint32_t ptr) {
-  fmtcmd("III", 0xffffff2bUL, font, ptr);
+  cFFFFFF(0x2b);
+  cI(font);
+  cI(ptr);
 }
 void GDClass::cmd_setmatrix(void) {
   cFFFFFF(0x2a);
@@ -650,10 +706,19 @@ void GDClass::cmd_sketch(int16_t x, int16_t y, uint16_t w, uint16_t h, uint32_t 
   cI(format);
 }
 void GDClass::cmd_slider(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t options, uint16_t val, uint16_t range) {
-  fmtcmd("IhhhhHHH", 0xffffff10UL, x, y, w, h, options, val, range);
+  cFFFFFF(0x10);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  cH(options);
+  cH(val);
+  cH(range);
+  cH(0);
 }
 void GDClass::cmd_snapshot(uint32_t ptr) {
-  fmtcmd("II", 0xffffff1fUL, ptr);
+  cFFFFFF(0x1f);
+  cI(ptr);
 }
 void GDClass::cmd_spinner(int16_t x, int16_t y, byte style, byte scale) {
   cFFFFFF(0x16);
@@ -669,20 +734,31 @@ void GDClass::cmd_swap(void) {
   cFFFFFF(0x01);
 }
 void GDClass::cmd_text(int16_t x, int16_t y, byte font, uint16_t options, const char *s) {
-  // fmtcmd("IhhhHs", 0xffffff0cUL, x, y, font, options, s);
   cFFFFFF(0x0c);
   ch(x);
   ch(y);
   ch(font);
   cH(options);
   cs(s);
-  align(strlen(s) + 1);
 }
 void GDClass::cmd_toggle(int16_t x, int16_t y, int16_t w, byte font, uint16_t options, uint16_t state, const char *s) {
-  fmtcmd("IhhhhHHs", 0xffffff12UL, x, y, w, font, options, state, s);
+  cFFFFFF(0x12);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(font);
+  cH(options);
+  cH(state);
+  cs(s);
 }
 void GDClass::cmd_track(int16_t x, int16_t y, uint16_t w, uint16_t h, byte tag) {
-  fmtcmd("Ihhhhh", 0xffffff2cUL, x, y, w, h, tag);
+  cFFFFFF(0x2c);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+  ch(tag);
+  ch(0);
 }
 void GDClass::cmd_translate(int32_t tx, int32_t ty) {
   cFFFFFF(0x27);
@@ -726,11 +802,9 @@ void GDClass::get_accel(int &x, int &y, int &z) {
 
   for (byte i = 0; i < 3; i++) {
     int a = analogRead(A0 + i);
-    // Serial.print(a, DEC); Serial.print(" ");
     int s = (-160 * (a - 376)) >> 6;
     f[i] = ((3 * f[i]) >> 2) + (s >> 2);
   }
-  // Serial.println();
   x = f[2];
   y = f[1];
   z = f[0];
