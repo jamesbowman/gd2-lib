@@ -162,8 +162,7 @@ static byte test_storage(void)
 static byte test_SDcard(void)
 {
   for (byte i = 0; i < 2; i++) {
-    if (!GD.load("selftest.gd2"))
-      return 0;
+    GD.safeload("selftest.gd2");
     uint32_t pcrc = GD.cmd_memcrc(0, ASSETS_END);
     GD.finish();
     uint32_t crc = GD.rd32(pcrc);
