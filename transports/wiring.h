@@ -81,8 +81,7 @@ public:
   uint16_t rp() {
     uint16_t r = __rd16(REG_CMD_READ);
     if (r == 0xfff) {
-      REPORT(/*EXCEPTION*/r);
-      for (;;) ;
+      GD.alert("COPROCESSOR EXCEPTION");
     }
     return r;
   }
@@ -188,7 +187,6 @@ public:
     __start(addr);
   }
   void resume(void) {
-    // REPORT(__rd16(REG_ID));
     stream();
   }
 
