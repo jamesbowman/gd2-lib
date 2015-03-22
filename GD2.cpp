@@ -178,7 +178,8 @@ uint16_t GDClass::random() {
 }
 
 uint16_t GDClass::random(uint16_t n) {
-  return GDClass::random() % n;
+  uint32_t p = random();
+  return (p * n) >> 16;
 }
 
 
@@ -218,6 +219,12 @@ uint16_t GDClass::atan2(int16_t y, int16_t x)
 {
   uint16_t a;
   uint16_t xx = 0;
+
+  /* These values are tricky. So pretend they are not */
+  if (x == -32768)
+    x++;
+  if (y == -32768)
+    y++;
 
   if ((x <= 0) ^ (y > 0)) {
     int16_t t; t = x; x = y; y = t;
