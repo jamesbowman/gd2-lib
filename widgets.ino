@@ -2,14 +2,13 @@
 #include <SPI.h>
 #include <GD2.h>
 
-static uint16_t value = 15000;
-static char message[41];
+static uint16_t value = 15000;      // every widget is hooked to this value
+static char message[41];            // 40 character text entry field
 static uint16_t options = OPT_FLAT;
 static byte prevkey;
 
 void setup()
 {
-  Serial.begin(1000000); // JCB
   memset(message, 7, 40);
   GD.begin();
 }
@@ -100,12 +99,5 @@ void loop()
   GD.BlendFunc(SRC_ALPHA, ZERO);
   GD.cmd_text(149, 146, 18, 0, message);
 
-  // GD.cmd_button(240 - 100, 136 - 40, 200, 80, 31, 0, "1 UP");
-
-  /*
-  GD.cmd_text(240, 136, 26, OPT_CENTER, "Hello world");
-  GD.cmd_scrollbar(30, 136, 420, 30, 0, 25333, 10000, 65535);
-  GD.cmd_button(240 - 100, 136 - 40, 200, 80, 31, 0, "1 UP");
-  */
   GD.swap();
 }
