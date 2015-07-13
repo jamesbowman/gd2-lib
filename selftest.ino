@@ -269,7 +269,7 @@ static byte test_touch(void)
   GD.self_calibrate();
   // write the new calibration back to EEPROM
 
-#ifndef RASPBERRY_PI
+#if !defined(RASPBERRY_PI) && !defined(__DUE__)
   for (int i = 0; i < 24; i++)
     EEPROM.write(1 + i, GD.rd(REG_TOUCH_TRANSFORM_A + i));
 #endif
