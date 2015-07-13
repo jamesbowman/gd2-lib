@@ -16,11 +16,13 @@ inventory = {
 
 import zipfile
 
-def clean(src):
+def clean(src, is_due = False):
     vis = 1
     dst = []
     for l in src:
         assert not chr(9) in l, "Tab found in source"
+        if is_due and ('EEPROM' in l):
+            continue
         if "//'" in l:
             l = l[:l.index("//'")]
         if vis and not "JCB" in l:
@@ -32,21 +34,22 @@ def clean(src):
                 vis = 1
     return "".join(dst)
 
-z = zipfile.ZipFile("Gameduino2.zip", "w", zipfile.ZIP_DEFLATED)
+for (is_due, suffix) in [(False, ""), (True, "_Due")]:
+    z = zipfile.ZipFile("Gameduino2%s.zip" % suffix, "w", zipfile.ZIP_DEFLATED)
 
-for f in "keywords.txt GD2.cpp GD2.h transports/wiring.h".split():
-    z.write(f, "Gameduino2/%s" % f)
+    for f in "keywords.txt GD2.cpp GD2.h transports/wiring.h".split():
+        z.write(f, "Gameduino2/%s" % f)
 
-for d,projs in inventory.items():
-    dir = "Gameduino2" + "/" + d
-    for p in projs.split():
-        pd = dir + "/" + p
-        z.writestr("%s/%s.ino" % (pd, p), clean(open("%s.ino" % p)))
-        for l in open("%s.ino" % p):
-            if '#include "' in l:
-                hdr = l[10:l.rindex('"')]
-                z.write("converted-assets/%s" % hdr, "%s/%s" % (pd, hdr))
+    for d,projs in inventory.items():
+        dir = "Gameduino2" + "/" + d
+        for p in projs.split():
+            pd = dir + "/" + p
+            z.writestr("%s/%s.ino" % (pd, p), clean(open("%s.ino" % p), is_due))
+            for l in open("%s.ino" % p):
+                if '#include "' in l:
+                    hdr = l[10:l.rindex('"')]
+                    z.write("converted-assets/%s" % hdr, "%s/%s" % (pd, hdr))
 
-z.close()
+    z.close()
 
-# print ["./mkino %s" % s for s in " ".join(inventory.values()).split()]
+# print "\n".join(["./mkino %s" % s for s in " ".join(inventory.values()).split()])
