@@ -354,7 +354,6 @@ trackMotion(int x, int y)
 
 void setup()
 {
-  Serial.begin(57600);
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
