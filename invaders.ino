@@ -295,7 +295,7 @@ public:
                         fake = (fake + 1) & 511;
                         control_right = fake < 256;
                         control_left  = 256 <= fake;
-                        control_fire = (random() % 70) == 0;
+                        control_fire = (GD.random(70)) == 0;
 
                         if (control_left) {
                         xpos -= playerSpeed;
