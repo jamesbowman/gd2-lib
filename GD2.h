@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2013 by James Bowman <jamesb@excamera.com>
- * Gameduino 2 library for Arduino, Raspberry Pi.
+ * Copyright (C) 2013-2015 by James Bowman <jamesb@excamera.com>
+ * Gameduino 2 library for Arduino, Arduino Due, Raspberry Pi.
  *
  */
 
@@ -28,8 +28,66 @@
 #define GD_TRIM         2
 #define GD_STORAGE      4
 
+#ifdef __SAM3X8E__
+#define __DUE__ 1
+#endif
+
 ////////////////////////////////////////////////////////////////////////
+// Decide if we want to compile in SDcard support
+//
+// For stock Arduino models: yes
+// Raspberry PI: no
+// Arduino Due: no
+//
+
 #if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
+#define SDCARD 1
+#else
+#define SDCARD 0
+#endif
+
+#if defined(__DUE__)
+#define MOSI  11
+#define MISO  12
+#define SCK   13    // B.27
+
+class ASPI_t {
+public:
+  void begin(void) {
+    pinMode(MOSI, OUTPUT);
+    pinMode(MISO, INPUT);
+    pinMode(SCK, OUTPUT);
+    digitalWrite(SCK, 0);
+
+    // PIOB->PIO_PER = PIO_PB27;
+    // PIOB->PIO_CODR = PIO_PB27;
+    // PIOB->PIO_PUDR = PIO_PB27;
+  }
+  byte transfer(byte x ) {
+    byte r = 0;
+    for (byte i = 8; i; i--) {
+      if (x & 0x80)
+        PIOD->PIO_SODR = PIO_PD7;
+      else
+        PIOD->PIO_CODR = PIO_PD7;
+      // digitalWrite(MOSI, (x >> 7) & 1);
+      x <<= 1;
+      // digitalWrite(SCK, 1);
+      PIOB->PIO_SODR = PIO_PB27;
+      r <<= 1;
+      r |= digitalRead(MISO);
+      // digitalWrite(SCK, 0);
+      PIOB->PIO_CODR = PIO_PB27;
+    }
+    return r;
+  }
+};
+static class ASPI_t ASPI;
+#define SPI ASPI
+
+#endif
+
+#if SDCARD
 #define VERBOSE 0
 
 struct dirent {
@@ -132,7 +190,9 @@ class sdcard {
     pin = p;
 
     pinMode(pin, OUTPUT);
+#if !defined(__DUE__)
     SPI.setClockDivider(SPI_CLOCK_DIV64);
+#endif
     desel();
 
     delay(10);      // wait for boot
@@ -178,8 +238,7 @@ class sdcard {
     } else {
       ccs = 0;
     }
-    // Tty.printf("ccs = %d\n", ccs);
-  // REPORT(ccs);
+    // REPORT(ccs);
 
     type_code = rd(0x1be + 0x4);
     switch (type_code) {
@@ -191,8 +250,7 @@ class sdcard {
         type = FAT32;
         break;
     }
-  // REPORT(type_code);
-    // Tty.printf("Type code %#02x means FAT%d\n", type_code, (type == FAT16) ? 16 : 32);
+    // REPORT(type_code);
 #if VERBOSE
     Serial.print("Type ");
     Serial.print(type_code, HEX);
@@ -204,7 +262,7 @@ class sdcard {
     sectors_per_cluster = rd(o_partition + 0xd);
     reserved_sectors = rd2(o_partition + 0xe);
     cluster_size = 512L * sectors_per_cluster;
-// REPORT(sectors_per_cluster);
+    // REPORT(sectors_per_cluster);
 
     // Tty.printf("Bytes per sector:    %d\n", rd2(o_partition + 0xb));
     // Tty.printf("Sectors per cluster: %d\n", sectors_per_cluster);
@@ -228,8 +286,11 @@ class sdcard {
     }
   finished:
     // Serial.println("finished");
+    ;
+#if !defined(__DUE__)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
+#endif
   }
   void cmd17(uint32_t off) {
     if (ccs)
@@ -488,8 +549,9 @@ private:
 };
 
 extern GDClass GD;
+extern byte ft8xx_model;
 
-#if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
+#if SDCARD
 class Reader {
 public:
   int openfile(const char *filename) {
@@ -722,79 +784,80 @@ typedef struct {
 #define MUTE                 0x60
 #define UNMUTE               0x61
 
-#define RAM_CMD              1081344UL
-#define RAM_DL               1048576UL
 #define RAM_PAL              1056768UL
 
-#define REG_CLOCK            1057800UL
-#define REG_CMD_DL           1058028UL
-#define REG_CMD_READ         1058020UL
-#define REG_CMD_WRITE        1058024UL
-#define REG_CPURESET         1057820UL
-#define REG_CSPREAD          1057892UL
-#define REG_DITHER           1057884UL
-#define REG_DLSWAP           1057872UL
-#define REG_FRAMES           1057796UL
-#define REG_FREQUENCY        1057804UL
-#define REG_GPIO             1057936UL
-#define REG_GPIO_DIR         1057932UL
-#define REG_HCYCLE           1057832UL
-#define REG_HOFFSET          1057836UL
-#define REG_HSIZE            1057840UL
-#define REG_HSYNC0           1057844UL
-#define REG_HSYNC1           1057848UL
-#define REG_ID               1057792UL
-#define REG_INT_EN           1057948UL
-#define REG_INT_FLAGS        1057944UL
-#define REG_INT_MASK         1057952UL
-#define REG_MACRO_0          1057992UL
-#define REG_MACRO_1          1057996UL
-#define REG_OUTBITS          1057880UL
-#define REG_PCLK             1057900UL
-#define REG_PCLK_POL         1057896UL
-#define REG_PLAY             1057928UL
-#define REG_PLAYBACK_FORMAT  1057972UL
-#define REG_PLAYBACK_FREQ    1057968UL
-#define REG_PLAYBACK_LENGTH  1057960UL
-#define REG_PLAYBACK_LOOP    1057976UL
-#define REG_PLAYBACK_PLAY    1057980UL
-#define REG_PLAYBACK_READPTR 1057964UL
-#define REG_PLAYBACK_START   1057956UL
-#define REG_PWM_DUTY         1057988UL
-#define REG_PWM_HZ           1057984UL
-#define REG_ROTATE           1057876UL
-#define REG_SOUND            1057924UL
-#define REG_SWIZZLE          1057888UL
-#define REG_TAG              1057912UL
-#define REG_TAG_X            1057904UL
-#define REG_TAG_Y            1057908UL
-#define REG_TOUCH_ADC_MODE   1058036UL
-#define REG_TOUCH_CHARGE     1058040UL
-#define REG_TOUCH_DIRECT_XY  1058164UL
-#define REG_TOUCH_DIRECT_Z1Z2 1058168UL
-#define REG_TOUCH_MODE       1058032UL
-#define REG_TOUCH_OVERSAMPLE 1058048UL
-#define REG_TOUCH_RAW_XY     1058056UL
-#define REG_TOUCH_RZ         1058060UL
-#define REG_TOUCH_RZTHRESH   1058052UL
-#define REG_TOUCH_SCREEN_XY  1058064UL
-#define REG_TOUCH_SETTLE     1058044UL
-#define REG_TOUCH_TAG        1058072UL
-#define REG_TOUCH_TAG_XY     1058068UL
-#define REG_TOUCH_TRANSFORM_A 1058076UL
-#define REG_TOUCH_TRANSFORM_B 1058080UL
-#define REG_TOUCH_TRANSFORM_C 1058084UL
-#define REG_TOUCH_TRANSFORM_D 1058088UL
-#define REG_TOUCH_TRANSFORM_E 1058092UL
-#define REG_TOUCH_TRANSFORM_F 1058096UL
-#define REG_TRACKER          1085440UL
-#define REG_VCYCLE           1057852UL
-#define REG_VOFFSET          1057856UL
-#define REG_VOL_PB           1057916UL
-#define REG_VOL_SOUND        1057920UL
-#define REG_VSIZE            1057860UL
-#define REG_VSYNC0           1057864UL
-#define REG_VSYNC1           1057868UL
+#define RAM_CMD               (ft8xx_model ? 0x308000UL : 0x108000UL)
+#define RAM_DL                (ft8xx_model ? 0x300000UL : 0x100000UL)
+#define REG_CLOCK             (ft8xx_model ? 0x302008UL : 0x102408UL)
+#define REG_CMD_DL            (ft8xx_model ? 0x302100UL : 0x1024ecUL)
+#define REG_CMD_READ          (ft8xx_model ? 0x3020f8UL : 0x1024e4UL)
+#define REG_CMD_WRITE         (ft8xx_model ? 0x3020fcUL : 0x1024e8UL)
+#define REG_CPURESET          (ft8xx_model ? 0x302020UL : 0x10241cUL)
+#define REG_CSPREAD           (ft8xx_model ? 0x302068UL : 0x102464UL)
+#define REG_DITHER            (ft8xx_model ? 0x302060UL : 0x10245cUL)
+#define REG_DLSWAP            (ft8xx_model ? 0x302054UL : 0x102450UL)
+#define REG_FRAMES            (ft8xx_model ? 0x302004UL : 0x102404UL)
+#define REG_FREQUENCY         (ft8xx_model ? 0x30200cUL : 0x10240cUL)
+#define REG_GPIO              (ft8xx_model ? 0x302094UL : 0x102490UL)
+#define REG_GPIO_DIR          (ft8xx_model ? 0x302090UL : 0x10248cUL)
+#define REG_HCYCLE            (ft8xx_model ? 0x30202cUL : 0x102428UL)
+#define REG_HOFFSET           (ft8xx_model ? 0x302030UL : 0x10242cUL)
+#define REG_HSIZE             (ft8xx_model ? 0x302034UL : 0x102430UL)
+#define REG_HSYNC0            (ft8xx_model ? 0x302038UL : 0x102434UL)
+#define REG_HSYNC1            (ft8xx_model ? 0x30203cUL : 0x102438UL)
+#define REG_ID                (ft8xx_model ? 0x302000UL : 0x102400UL)
+#define REG_INT_EN            (ft8xx_model ? 0x3020acUL : 0x10249cUL)
+#define REG_INT_FLAGS         (ft8xx_model ? 0x3020a8UL : 0x102498UL)
+#define REG_INT_MASK          (ft8xx_model ? 0x3020b0UL : 0x1024a0UL)
+#define REG_MACRO_0           (ft8xx_model ? 0x3020d8UL : 0x1024c8UL)
+#define REG_MACRO_1           (ft8xx_model ? 0x3020dcUL : 0x1024ccUL)
+#define REG_OUTBITS           (ft8xx_model ? 0x30205cUL : 0x102458UL)
+#define REG_PCLK              (ft8xx_model ? 0x302070UL : 0x10246cUL)
+#define REG_PCLK_POL          (ft8xx_model ? 0x30206cUL : 0x102468UL)
+#define REG_PLAY              (ft8xx_model ? 0x30208cUL : 0x102488UL)
+#define REG_PLAYBACK_FORMAT   (ft8xx_model ? 0x3020c4UL : 0x1024b4UL)
+#define REG_PLAYBACK_FREQ     (ft8xx_model ? 0x3020c0UL : 0x1024b0UL)
+#define REG_PLAYBACK_LENGTH   (ft8xx_model ? 0x3020b8UL : 0x1024a8UL)
+#define REG_PLAYBACK_LOOP     (ft8xx_model ? 0x3020c8UL : 0x1024b8UL)
+#define REG_PLAYBACK_PLAY     (ft8xx_model ? 0x3020ccUL : 0x1024bcUL)
+#define REG_PLAYBACK_READPTR  (ft8xx_model ? 0x3020bcUL : 0x1024acUL)
+#define REG_PLAYBACK_START    (ft8xx_model ? 0x3020b4UL : 0x1024a4UL)
+#define REG_PWM_DUTY          (ft8xx_model ? 0x3020d4UL : 0x1024c4UL)
+#define REG_PWM_HZ            (ft8xx_model ? 0x3020d0UL : 0x1024c0UL)
+#define REG_ROTATE            (ft8xx_model ? 0x302058UL : 0x102454UL)
+#define REG_SOUND             (ft8xx_model ? 0x302088UL : 0x102484UL)
+#define REG_SWIZZLE           (ft8xx_model ? 0x302064UL : 0x102460UL)
+#define REG_TAG               (ft8xx_model ? 0x30207cUL : 0x102478UL)
+#define REG_TAG_X             (ft8xx_model ? 0x302074UL : 0x102470UL)
+#define REG_TAG_Y             (ft8xx_model ? 0x302078UL : 0x102474UL)
+#define REG_TOUCH_ADC_MODE    (ft8xx_model ? 0x302108UL : 0x1024f4UL)
+#define REG_TOUCH_CHARGE      (ft8xx_model ? 0x30210cUL : 0x1024f8UL)
+#define REG_TOUCH_DIRECT_XY   (ft8xx_model ? 0x30218cUL : 0x102574UL)
+#define REG_TOUCH_DIRECT_Z1Z2 (ft8xx_model ? 0x302190UL : 0x102578UL)
+#define REG_TOUCH_MODE        (ft8xx_model ? 0x302104UL : 0x1024f0UL)
+#define REG_TOUCH_OVERSAMPLE  (ft8xx_model ? 0x302114UL : 0x102500UL)
+#define REG_TOUCH_RAW_XY      (ft8xx_model ? 0x30211cUL : 0x102508UL)
+#define REG_TOUCH_RZ          (ft8xx_model ? 0x302120UL : 0x10250cUL)
+#define REG_TOUCH_RZTHRESH    (ft8xx_model ? 0x302118UL : 0x102504UL)
+#define REG_TOUCH_SCREEN_XY   (ft8xx_model ? 0x302124UL : 0x102510UL)
+#define REG_TOUCH_SETTLE      (ft8xx_model ? 0x302110UL : 0x1024fcUL)
+#define REG_TOUCH_TAG         (ft8xx_model ? 0x30212cUL : 0x102518UL)
+#define REG_TOUCH_TAG_XY      (ft8xx_model ? 0x302128UL : 0x102514UL)
+#define REG_TOUCH_TRANSFORM_A (ft8xx_model ? 0x302150UL : 0x10251cUL)
+#define REG_TOUCH_TRANSFORM_B (ft8xx_model ? 0x302154UL : 0x102520UL)
+#define REG_TOUCH_TRANSFORM_C (ft8xx_model ? 0x302158UL : 0x102524UL)
+#define REG_TOUCH_TRANSFORM_D (ft8xx_model ? 0x30215cUL : 0x102528UL)
+#define REG_TOUCH_TRANSFORM_E (ft8xx_model ? 0x302160UL : 0x10252cUL)
+#define REG_TOUCH_TRANSFORM_F (ft8xx_model ? 0x302164UL : 0x102530UL)
+#define REG_TRACKER           (ft8xx_model ? 0x309000UL : 0x109000UL)
+#define REG_TRIM              (ft8xx_model ? 0x302180UL : 0x10256cUL)
+#define REG_VCYCLE            (ft8xx_model ? 0x302040UL : 0x10243cUL)
+#define REG_VOFFSET           (ft8xx_model ? 0x302044UL : 0x102440UL)
+#define REG_VOL_PB            (ft8xx_model ? 0x302080UL : 0x10247cUL)
+#define REG_VOL_SOUND         (ft8xx_model ? 0x302084UL : 0x102480UL)
+#define REG_VSIZE             (ft8xx_model ? 0x302048UL : 0x102444UL)
+#define REG_VSYNC0            (ft8xx_model ? 0x30204cUL : 0x102448UL)
+#define REG_VSYNC1            (ft8xx_model ? 0x302050UL : 0x10244cUL)
 
 #define VERTEX2II(x, y, handle, cell) \
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))
@@ -862,7 +925,7 @@ class Poly {
     }
 };
 
-#if !defined(RASPBERRY_PI) && !defined(DUMPDEV)
+#if SDCARD
 class Streamer {
 public:
   void begin(const char *rawsamples,

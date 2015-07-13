@@ -3,26 +3,51 @@
 #endif
 
 class GDTransport {
+private:
+  byte model;
 public:
   void ios() {
     pinMode(CS, OUTPUT);
     digitalWrite(CS, HIGH);
     pinMode(9, OUTPUT);
     digitalWrite(9, HIGH);
+
     SPI.begin();
+    // for (;;) SPI.transfer(0x33);
   }
   void begin() {
     ios();
 
     SPI.begin();
+#ifndef __DUE__
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
+#endif
 
     hostcmd(0x00);
 #if PROTO == 0
     hostcmd(0x44); // from external crystal
 #endif
     hostcmd(0x68);
+    delay(120);
+
+    while (0) {
+      digitalWrite(CS, LOW);
+      Serial.println(SPI.transfer(0x10), HEX);
+      Serial.println(SPI.transfer(0x24), HEX);
+      Serial.println(SPI.transfer(0x00), HEX);
+      Serial.println(SPI.transfer(0xff), HEX);
+      Serial.println(SPI.transfer(0x00), HEX);
+      Serial.println(SPI.transfer(0x00), HEX);
+      Serial.println();
+
+      digitalWrite(CS, HIGH);
+      delay(2000);
+    }
+
+    // So that FT800,801      FT81x
+    // model       0            1
+    ft8xx_model = rd(0x0c0001) >> 4;  
 
     wp = 0;
     freespace = 4096 - 4;

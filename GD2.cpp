@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "SPI.h"
+#if !defined(__SAM3X8E__)
 #include "EEPROM.h"
+#endif
 #include <GD2.h>
 
 #define SD_PIN        9   // pin used for the microSD enable signal
@@ -31,6 +33,8 @@
 #include "transports/spidev.h"
 #endif
 
+byte ft8xx_model;
+
 #if defined(ARDUINO)
 #include "transports/wiring.h"
 #endif
@@ -56,11 +60,12 @@ uint32_t GDClass::measure_freq(void)
   unsigned long t0 = GDTR.rd32(REG_CLOCK);
   delayMicroseconds(15625);
   unsigned long t1 = GDTR.rd32(REG_CLOCK);
+  // Serial.println((t1 - t0) << 6);
   return (t1 - t0) << 6;
 }
 
-#define REG_TRIM        0x10256C
 #define LOW_FREQ_BOUND  47040000UL
+// #define LOW_FREQ_BOUND  32040000UL
 
 void GDClass::tune(void)
 {
@@ -102,8 +107,9 @@ void GDClass::begin(uint8_t options) {
   GDTR.wr(REG_GPIO_DIR, 0x83);
   GDTR.wr(REG_GPIO, 0x80);
 
-  if (options & GD_CALIBRATE) {
-#if CALIBRATION && defined(ARDUINO)
+  if (CALIBRATION & (options & GD_CALIBRATE)) {
+
+#if defined(ARDUINO) && !defined(__DUE__)
     if (EEPROM.read(0) != 0x7c) {
       self_calibrate();
       // for (int i = 0; i < 24; i++) Serial.println(GDTR.rd(REG_TOUCH_TRANSFORM_A + i), HEX);
@@ -116,8 +122,22 @@ void GDClass::begin(uint8_t options) {
     }
 #endif
 
+#ifdef __DUE__
+    // The Due has no persistent storage. So instead use a "canned"
+    // calibration.
 
-#if CALIBRATION && defined(RASPBERRY_PI)
+    // self_calibrate();
+    // for (int i = 0; i < 24; i++)
+    //   Serial.println(GDTR.rd(REG_TOUCH_TRANSFORM_A + i), HEX);
+    static const byte canned_calibration[24] = {
+      0xCC, 0x7C, 0xFF, 0xFF, 0x57, 0xFE, 0xFF, 0xFF,
+      0xA1, 0x04, 0xF9, 0x01, 0x93, 0x00, 0x00, 0x00,
+      0x5E, 0x4B, 0x00, 0x00, 0x08, 0x8B, 0xF1, 0xFF };
+    for (int i = 0; i < 24; i++)
+      GDTR.wr(REG_TOUCH_TRANSFORM_A + i, canned_calibration[i]);
+#endif
+
+#if defined(RASPBERRY_PI)
     {
       uint8_t cal[24];
       FILE *calfile = fopen(".calibration", "r");
@@ -138,6 +158,7 @@ void GDClass::begin(uint8_t options) {
       }
     }
 #endif
+
   }
 
   GDTR.wr16(REG_TOUCH_RZTHRESH, 1200);
@@ -454,10 +475,16 @@ void GDClass::SaveContext(void) {
   cI((34UL << 24));
 }
 void GDClass::ScissorSize(uint16_t width, uint16_t height) {
-  cI((28UL << 24) | ((width & 1023L) << 10) | ((height & 1023L) << 0));
+  if (ft8xx_model == 0)
+    cI((28UL << 24) | ((width & 1023L) << 10) | ((height & 1023L) << 0));
+  else
+    cI((28UL << 24) | ((width & 4095L) << 12) | ((height & 4095L) << 0));
 }
 void GDClass::ScissorXY(uint16_t x, uint16_t y) {
-  cI((27UL << 24) | ((x & 511L) << 9) | ((y & 511L) << 0));
+  if (ft8xx_model == 0)
+    cI((27UL << 24) | ((x & 511L) << 9) | ((y & 511L) << 0));
+  else
+    cI((27UL << 24) | ((x & 2047L) << 11) | ((y & 2047L) << 0));
 }
 void GDClass::StencilFunc(byte func, byte ref, byte mask) {
   cI((10UL << 24) | ((func & 7L) << 16) | ((ref & 255L) << 8) | ((mask & 255L) << 0));
