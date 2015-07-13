@@ -9,7 +9,7 @@ static int a[256]; //' A{
 void setup() 
 {
   Serial.begin(1000000); // JCB
-  GD.begin();     
+  GD.begin();
   LOAD_ASSETS();  //' }load
   for (int i = 0; i < 256; i++)
     a[i] = GD.random(512);
