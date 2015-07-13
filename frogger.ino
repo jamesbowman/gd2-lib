@@ -43,7 +43,7 @@ static long hiscore;
 static byte lives;
 static byte done[5];
 static byte homes[5] = { 24, 72, 120, 168, 216 };
-static int time;
+static int ti;
 
 void frog_start()
 {
@@ -53,7 +53,7 @@ void frog_start()
   frogdir = 0;
   frogface = 0x0000;
   dying = 0;
-  time = 120 << 7;
+  ti = 120 << 7;
 }
 
 void level_start()
@@ -286,13 +286,13 @@ void loop()
 
   prevt = t;
   t++;
-  time = max(0, time - 1);
-  if ((time == 0) && (dying == 0))
+  ti = max(0, ti - 1);
+  if ((ti == 0) && (dying == 0))
     dying = 1;
  
   // Draw 'time remaining' by clearing a black rectangle
   {
-    byte tw = 120 - (time >> 7);
+    byte tw = 120 - (ti >> 7);
     byte tx = 72;
     GD.SaveContext();
     GD.ScissorXY(tx, 248);
@@ -372,7 +372,7 @@ void loop()
 
   if (dying) {
     if (++dying == 64) {
-      if (--lives == 0 || time == 0) {
+      if (--lives == 0 || ti == 0) {
         game_over();
         game_start();
         level_start();
