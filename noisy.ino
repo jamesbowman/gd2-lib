@@ -37,5 +37,12 @@ static void saydigit(byte n)
 
 void loop()
 {
-  saydigit(GD.random(10)); delay(1000);
+  int n = GD.random(10);
+
+  GD.Clear();
+  GD.cmd_number(240, 136, 31, OPT_CENTER, n);
+  GD.swap();
+
+  saydigit(n);
+  delay(1000);
 } //' }A
