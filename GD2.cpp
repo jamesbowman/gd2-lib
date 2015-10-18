@@ -3,6 +3,7 @@
 #if !defined(__SAM3X8E__)
 #include "EEPROM.h"
 #endif
+#define VERBOSE       0
 #include <GD2.h>
 
 #define SD_PIN        9   // pin used for the microSD enable signal
@@ -11,7 +12,6 @@
 #define STORAGE       1
 #define CALIBRATION   1
 #define DUMP_INPUTS   0
-#define VERBOSE       0
 
 #ifdef DUMPDEV
 #include <assert.h>
@@ -940,7 +940,7 @@ byte GDClass::load(const char *filename, void (*progress)(long, long))
   if (r.openfile(filename)) {
     byte buf[512];
     while (r.offset < r.size) {
-      uint16_t n = min(512, r.size - r.offset);
+      uint16_t n = min(512U, r.size - r.offset);
       n = (n + 3) & ~3;   // force 32-bit alignment
       r.readsector(buf);
 
@@ -992,5 +992,61 @@ void GDClass::safeload(const char *filename)
     swap();
     for (;;)
       ;
+  }
+}
+
+#define REG_SCREENSHOT_EN    0x00102410UL // Set to enable screenshot mode
+#define REG_SCREENSHOT_Y     0x00102414UL // Y line register
+#define REG_SCREENSHOT_START 0x00102418UL // Screenshot start trigger
+#define REG_SCREENSHOT_BUSY  0x001024d8UL // Screenshot ready flags
+#define REG_SCREENSHOT_READ  0x00102554UL // Set to enable readout
+#define RAM_SCREENSHOT       0x001C2000UL // Screenshot readout buffer
+
+void GDClass::dumpscreen(void)    
+{
+  {
+    finish();
+
+    wr(REG_SCREENSHOT_EN, 1);
+    Serial.write(0xa5);
+    for (int ly = 0; ly < 272; ly++) {
+      wr16(REG_SCREENSHOT_Y, ly);
+      wr(REG_SCREENSHOT_START, 1);
+      delay(2);
+      while (rd32(REG_SCREENSHOT_BUSY) | rd32(REG_SCREENSHOT_BUSY + 4))
+        ;
+      wr(REG_SCREENSHOT_READ, 1);
+      bulkrd(RAM_SCREENSHOT);
+      SPI.transfer(0xff);
+      for (int x = 0; x < 480; x += 8) {
+        union {
+          uint32_t v;
+          struct {
+            uint8_t b, g, r, a;
+          };
+        } block[8];
+        for (int i = 0; i < 8; i++) {
+          block[i].b = SPI.transfer(0xff);
+          block[i].g = SPI.transfer(0xff);
+          block[i].r = SPI.transfer(0xff);
+          block[i].a = SPI.transfer(0xff);
+        }
+        byte difference = 1;
+        for (int i = 1, mask = 2; i < 8; i++, mask <<= 1)
+          if (block[i].v != block[i-1].v)
+            difference |= mask;
+        Serial.write(difference);
+
+        for (int i = 0; i < 8; i++)
+          if (1 & (difference >> i)) {
+            Serial.write(block[i].b);
+            Serial.write(block[i].g);
+            Serial.write(block[i].r);
+          }
+      }
+      resume();
+      wr(REG_SCREENSHOT_READ, 0);
+    }
+    wr16(REG_SCREENSHOT_EN, 0);
   }
 }
