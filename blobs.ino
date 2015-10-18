@@ -36,9 +36,13 @@ void loop() //' b{
   GD.ClearColorRGB(0xd0d0c0); // JCB
   GD.ClearColorRGB(0xe0e0e0);
   GD.Clear();
-  GD.Begin(BITMAPS);      // JCB
-  GD.BitmapSize(NEAREST, REPEAT, REPEAT, 480, 272); // JCB
-  GD.Vertex2ii(0, 0); // JCB
+
+  GD.ColorRGB(0xa0a0a0);
+  GD.cmd_text(240, 136, 31, OPT_CENTER, "touch to draw");
+
+  // GD.Begin(BITMAPS);      // JCB
+  // GD.BitmapSize(NEAREST, REPEAT, REPEAT, 480, 272); // JCB
+  // GD.Vertex2ii(0, 0); // JCB
 
   // Draw the blobs from oldest to youngest // JCB
   GD.Begin(POINTS);
