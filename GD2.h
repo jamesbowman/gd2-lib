@@ -11,12 +11,6 @@
 #include "wiring.h"
 #endif
 
-#if defined(RASPBERRY_PI)
-#define REPORT(VAR) fprintf(stderr, #VAR "=%d\n", (VAR))
-#else
-#define REPORT(VAR) (Serial.print(#VAR "="), Serial.println(VAR, DEC))
-#endif
-
 #include "Arduino.h"
 #include <stdarg.h>
 
@@ -88,7 +82,18 @@ static class ASPI_t ASPI;
 #endif
 
 #if SDCARD
-#define VERBOSE 0
+
+#if defined(VERBOSE) && (VERBOSE > 0)
+#define INFO(X) Serial.println((X))
+#if defined(RASPBERRY_PI)
+#define REPORT(VAR) fprintf(stderr, #VAR "=%d\n", (VAR))
+#else
+#define REPORT(VAR) (Serial.print(#VAR "="), Serial.print(VAR, DEC), Serial.print(' '), Serial.println(VAR, HEX))
+#endif
+#else
+#define INFO(X)
+#define REPORT(X)
+#endif
 
 struct dirent {
   char name[8];
@@ -111,6 +116,8 @@ struct dirent {
 #define FAT16 0
 #define FAT32 1
 
+#define DD
+
 class sdcard {
   public:
   void sel() {
@@ -122,12 +129,13 @@ class sdcard {
     SPI.transfer(0xff); // force DO release
   }
   void sd_delay(byte n) {
-    while (n--)
-      SPI.transfer(0xff);
+    while (n--) {
+      DD SPI.transfer(0xff);
+    }
   }
 
   void cmd(byte cmd, uint32_t lba = 0, uint8_t crc = 0x95) {
-#if VERBOSE
+#if VERBOSE > 1
     Serial.print("cmd ");
     Serial.print(cmd, DEC);
     Serial.print(" ");
@@ -136,29 +144,36 @@ class sdcard {
 #endif
 
     sel();
-    SPI.transfer(0xff);
-    SPI.transfer(0x40 | cmd);
-    SPI.transfer(0xff & (lba >> 24));
-    SPI.transfer(0xff & (lba >> 16));
-    SPI.transfer(0xff & (lba >> 8));
-    SPI.transfer(0xff & (lba));
-    SPI.transfer(crc);
-    SPI.transfer(0xff);
+    // DD SPI.transfer(0xff);
+    DD SPI.transfer(0x40 | cmd);
+    DD SPI.transfer(0xff & (lba >> 24));
+    DD SPI.transfer(0xff & (lba >> 16));
+    DD SPI.transfer(0xff & (lba >> 8));
+    DD SPI.transfer(0xff & (lba));
+    DD SPI.transfer(crc);
+    // DD SPI.transfer(0xff);
+  }
+
+  byte response() {
+    byte r;
+    DD
+    r = SPI.transfer(0xff);
+    while (r & 0x80) {
+      DD
+      r = SPI.transfer(0xff);
+    }
+    return r;
   }
 
   byte R1() {   // read response R1
-    byte r;
-    while ((r = SPI.transfer(0xff)) & 0x80)
-      ;
+    byte r = response();
     desel();
     SPI.transfer(0xff);   // trailing byte
     return r;
   }
 
   byte sdR3(uint32_t &ocr) {  // read response R3
-    uint32_t r;
-    while ((r = SPI.transfer(0xff)) & 0x80)
-      ;
+    byte r = response();
     for (byte i = 4; i; i--)
       ocr = (ocr << 8) | SPI.transfer(0xff);
     SPI.transfer(0xff);   // trailing byte
@@ -168,9 +183,7 @@ class sdcard {
   }
 
   byte sdR7() {  // read response R3
-    uint32_t r;
-    while ((r = SPI.transfer(0xff)) & 0x80)
-      ;
+    byte r = response();
     for (byte i = 4; i; i--)
       // Serial.println(SPI.transfer(0xff), HEX);
       SPI.transfer(0xff);
@@ -190,18 +203,19 @@ class sdcard {
     pin = p;
 
     pinMode(pin, OUTPUT);
-#if !defined(__DUE__)
+#if !defined(__DUE__) && !defined(TEENSYDUINO)
     SPI.setClockDivider(SPI_CLOCK_DIV64);
 #endif
     desel();
 
+  // for (;;) SPI.transfer(0xff);
     delay(10);      // wait for boot
     sd_delay(10);   // deselected, 80 pulses
 
-    // Tty.printf("Attempting card reset... ");
-    // attempt reset
+    INFO("Attempting card reset... ");
     byte r1;
-    int attempts = 0;
+    static int attempts;
+    attempts = 0;
     do {       // reset, enter idle
       cmd(0);
       while ((r1 = SPI.transfer(0xff)) & 0x80)
@@ -209,36 +223,56 @@ class sdcard {
           goto finished;
       desel();
       SPI.transfer(0xff);   // trailing byte
+      REPORT(r1);
     } while (r1 != 1);
-    // Tty.printf("reset ok\n");
+    INFO("reset ok\n");
 
     sdhc = 0;
     cmd(8, 0x1aa, 0x87);
     r1 = sdR7();
     sdhc = (r1 == 1);
 
-    // Tty.printf("card %s SDHC\n", sdhc ? "is" : "is not");
+    REPORT(sdhc);
 
-    // Tty.printf("Sending card init command... ");
+    INFO("Sending card init command");
     while (1) {
       appcmd(41, sdhc ? (1UL << 30) : 0); // card init
       r1 = R1();
+#if VERBOSE
+    Serial.println(r1, HEX);
+#endif
       if ((r1 & 1) == 0)
         break;
       delay(100);
     }
-    // Tty.printf("OK\n");
+    INFO("OK");
 
     if (sdhc) {
       cmd(58);
       uint32_t OCR = 0;
       sdR3(OCR);
+      REPORT(OCR);
       ccs = 1UL & (OCR >> 30);
-      // Tty.printf("OCR register is %#010lx\n", long(OCR));
     } else {
       ccs = 0;
     }
-    // REPORT(ccs);
+    REPORT(ccs);
+
+    // Test point: dump sector 0 to serial.
+    // should see first 512 bytes of card, ending 55 AA.
+    if (0) {
+      cmd17(0);
+      for (int i = 0; i < 512; i++) {
+        delay(10);
+        byte b = SPI.transfer(0xff);
+        Serial.print(b, HEX);
+        Serial.print(' ');
+        if ((i & 15) == 15)
+          Serial.println();
+      }
+      desel();
+      for (;;);
+    }
 
     type_code = rd(0x1be + 0x4);
     switch (type_code) {
@@ -250,22 +284,16 @@ class sdcard {
         type = FAT32;
         break;
     }
-    // REPORT(type_code);
-#if VERBOSE
-    Serial.print("Type ");
-    Serial.print(type_code, HEX);
-    Serial.print(" so FAT");
-    Serial.println((type == FAT16) ? 16 : 32, DEC);
-#endif
+    REPORT(type_code);
 
     o_partition = 512L * rd4(0x1be + 0x8);
     sectors_per_cluster = rd(o_partition + 0xd);
     reserved_sectors = rd2(o_partition + 0xe);
     cluster_size = 512L * sectors_per_cluster;
-    // REPORT(sectors_per_cluster);
+    REPORT(sectors_per_cluster);
 
-    // Tty.printf("Bytes per sector:    %d\n", rd2(o_partition + 0xb));
-    // Tty.printf("Sectors per cluster: %d\n", sectors_per_cluster);
+    // Serial.println("Bytes per sector:    %d\n", rd2(o_partition + 0xb));
+    // Serial.println("Sectors per cluster: %d\n", sectors_per_cluster);
 
     if (type == FAT16) {
       max_root_dir_entries = rd2(o_partition + 0x11);
@@ -285,7 +313,7 @@ class sdcard {
       o_data = (512L * (cluster_begin_lba - 2 * sectors_per_cluster));
     }
   finished:
-    // Serial.println("finished");
+    INFO("finished");
     ;
 #if !defined(__DUE__)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
@@ -993,45 +1021,5 @@ public:
 
 #endif
 
-static byte sinus(byte x)
-{
-  return 128 + GD.rsin(128, -16384 + (x << 7));
-}
-
-// JCB{
-static void caption(int t, const char *text)
-{
-
-  if ((0 <= t) && (t < 128)) {
-    int sz = strlen(text) * 8;
-    GD.RestoreContext();
-    GD.Begin(LINES);
-    GD.LineWidth(9 * 16);
-    byte fade;
-    if (t < 96)
-      fade = 0xff;
-    else
-      fade = 0xff - ((t - 96) * 8);
-    GD.ColorA(fade >> 1);
-    GD.ColorRGB(0x000000);
-    int y = 259;
-
-    byte slide = sinus(min(255, t * 16));
-    int x = ((slide * (long)sz) >> 8);
-    GD.Vertex2ii(480, y);
-    GD.Vertex2ii(470 - x, y);
-
-    GD.ColorRGB(0xffffff);
-    if (t < 16) {
-      GD.ColorA(fade >> 2);
-      for (int i = 8; i >= 0; i -= 2)
-        GD.cmd_text(470 - x + sz + i, y, 26, OPT_CENTERY | OPT_RIGHTX, text);
-    } else {
-      GD.ColorA(fade);
-      GD.cmd_text(470 - x + sz, y, 26, OPT_CENTERY | OPT_RIGHTX, text);
-    }
-  }
-}
-// }JCB
-
 #endif
+
