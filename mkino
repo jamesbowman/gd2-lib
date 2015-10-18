@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 INO_PORT=/dev/redboard0
 INO_CPU=uno
 
@@ -11,8 +13,24 @@ DIR=ino-$1
 mkdir -p $DIR/src $DIR/lib
 [ ! -h $DIR/lib/Gameduino2 ] && ln -s ~/Arduino/libraries/Gameduino2 $DIR/lib
 cp $1.ino $DIR/src/
-cp converted-assets/${1}_assets.h $DIR/src/
+if [ -f converted-assets/${1}_assets.h ]
+then
+  cp converted-assets/${1}_assets.h $DIR/src/
+fi
 cd $DIR &&
 
-ano build -m $INO_CPU --arduino-dist $V || exit
-ano upload -m $INO_CPU --arduino-dist $V -p $INO_PORT
+sched=${2:-"build upload"}
+
+for A in $sched
+do
+  case $A in
+  build)  ano build -m $INO_CPU --arduino-dist $V
+          ;;
+  upload) ano upload -m $INO_CPU --arduino-dist $V -p $INO_PORT
+          ;;
+  esac
+done
+
+# ano build -m $INO_CPU --arduino-dist $V || exit
+# ano upload -m $INO_CPU --arduino-dist $V -p $INO_PORT
+# miniterm.py $INO_PORT 1000000
