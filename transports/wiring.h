@@ -19,9 +19,13 @@ public:
     ios();
 
     SPI.begin();
+#ifdef TEENSYDUINO
+    SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
+#else
 #ifndef __DUE__
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
+#endif
 #endif
 
     hostcmd(0x00);
@@ -31,7 +35,19 @@ public:
     hostcmd(0x68);
     delay(120);
 
+    // Test point: saturate SPI
     while (0) {
+      digitalWrite(CS, LOW);
+      SPI.transfer(0x55);
+      digitalWrite(CS, HIGH);
+    }
+
+    // Test point: attempt to wake up FT8xx every 2 seconds
+    while (0) {
+      hostcmd(0x00);
+      delay(120);
+      hostcmd(0x68);
+      delay(120);
       digitalWrite(CS, LOW);
       Serial.println(SPI.transfer(0x10), HEX);
       Serial.println(SPI.transfer(0x24), HEX);
