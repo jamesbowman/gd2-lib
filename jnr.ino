@@ -168,6 +168,5 @@ void loop()
   }
 #endif  // }JCB
   int t;
-  caption(t++, "Graphics by http://www.robotality.com");  // JCB
   GD.swap();
 }

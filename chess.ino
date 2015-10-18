@@ -4,6 +4,11 @@
 
 #include "chess_assets.h"
 
+static byte sinus(byte x)
+{
+  return 128 + GD.rsin(128, -16384 + (x << 7));
+}
+
 void setup()
 {
   Serial.begin(1000000);    // JCB
