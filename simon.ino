@@ -67,7 +67,7 @@ void play(int pressed) //' play{
     drawscreen(0);
 } //' }play
 
-static int get_note() //' getnote{
+int get_note() //' getnote{
 {
   byte pressed = 0;
   while (pressed == 0) {
@@ -83,7 +83,7 @@ static int get_note() //' getnote{
   return pressed;
 } //' }getnote
 
-static int random_note()
+int random_note()
 {
   return 1 + GD.random(4);
 }
