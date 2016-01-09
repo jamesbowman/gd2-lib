@@ -8,10 +8,28 @@
 
 #define SD_PIN        9   // pin used for the microSD enable signal
 
-#define PROTO         1
-#define STORAGE       1
-#define CALIBRATION   1
-#define DUMP_INPUTS   0
+#define BOARD_FTDI_80x    0
+#define BOARD_GAMEDUINO2  1
+#define BOARD_EVITA_0     2
+
+#define BOARD         BOARD_GAMEDUINO2 // board, from above
+#define STORAGE       1                // Want SD storage?
+#define CALIBRATION   1                // Want touchscreen?
+
+// EVITA_0 has no storage or calibration
+#if (BOARD == BOARD_EVITA_0)
+#undef STORAGE
+#define STORAGE 0
+#undef CALIBRATION
+#define CALIBRATION 0
+#endif
+
+// FTDI boards do not have storage
+#if (BOARD == BOARD_FTDI_80x)
+#undef STORAGE
+#define STORAGE 0
+#endif
+
 
 #ifdef DUMPDEV
 #include <assert.h>
@@ -98,12 +116,37 @@ void GDClass::begin(uint8_t options) {
 #endif
   finish();
 
+#if (BOARD == BOARD_FTDI_80x)
+  w = 480, h = 272;
   GDTR.wr(REG_PCLK_POL, 1);
   GDTR.wr(REG_PCLK, 5);
-#if PROTO == 1
+#endif
+
+#if (BOARD == BOARD_GAMEDUINO2)
+  w = 480, h = 272;
+  GDTR.wr(REG_PCLK_POL, 1);
+  GDTR.wr(REG_PCLK, 5);
   GDTR.wr(REG_ROTATE, 1);
   GDTR.wr(REG_SWIZZLE, 3);
 #endif
+
+#if (BOARD == BOARD_EVITA_0)
+  w = 1024, h = 768;
+  GDTR.wr16(REG_HCYCLE,  1344);
+  GDTR.wr16(REG_HSIZE,   1024);
+  GDTR.wr16(REG_HSYNC0,  0   );
+  GDTR.wr16(REG_HSYNC1,  136 );
+  GDTR.wr16(REG_HOFFSET, 136+160);
+  GDTR.wr16(REG_VCYCLE,  806 );
+  GDTR.wr16(REG_VSIZE,   768 );
+  GDTR.wr16(REG_VSYNC0,  0   );
+  GDTR.wr16(REG_VSYNC1,  6    );
+  GDTR.wr16(REG_VOFFSET, 6+29  );
+  GDTR.wr16(REG_CSPREAD, 0   );
+  GDTR.wr16(REG_PCLK_POL,0   );
+  GDTR.wr16(REG_PCLK,    1   );
+#endif
+
   GDTR.wr(REG_GPIO_DIR, 0x83);
   GDTR.wr(REG_GPIO, 0x80);
 
@@ -877,7 +920,7 @@ void GDClass::get_inputs(void) {
   GDTR.rd_n(bi, REG_TRACKER, 4);
   GDTR.rd_n(bi + 4, REG_TOUCH_RZ, 13);
   GDTR.rd_n(bi + 17, REG_TAG, 1);
-#if DUMP_INPUTS
+#ifdef DUMP_INPUTS
   for (size_t i = 0; i < sizeof(inputs); i++) {
     Serial.print(bi[i], HEX);
     Serial.print(" ");

@@ -29,7 +29,7 @@ public:
 #endif
 
     hostcmd(0x00);
-#if PROTO == 0
+#if (BOARD != BOARD_GAMEDUINO2)
     hostcmd(0x44); // from external crystal
 #endif
     hostcmd(0x68);
