@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 by James Bowman <jamesb@excamera.com>
+ * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
  * Gameduino 2 library for Arduino, Arduino Due, Raspberry Pi.
  *
  */
@@ -405,6 +405,8 @@ public:
 
 class GDClass {
 public:
+  int w, h;
+
   void begin(uint8_t options = (GD_CALIBRATE | GD_TRIM | GD_STORAGE));
 
   uint16_t random();
@@ -601,9 +603,13 @@ public:
   }
   void begin(dirent &de) {
     size = de.size;
-    cluster = de.cluster;
+    cluster0 = de.cluster;
     if (GD.SD.type == FAT32)
-      cluster |= ((long)de.cluster_hi << 16);
+      cluster0 |= ((long)de.cluster_hi << 16);
+    rewind();
+  }
+  void rewind(void) {
+    cluster = cluster0;
     sector = 0;
     offset = 0;
   }
@@ -630,10 +636,29 @@ public:
     offset += 512;
   }
   void seek(uint32_t o) {
+    union {
+      uint8_t buf[512];
+      uint32_t fat32[128];
+      uint16_t fat16[256];
+    };
+    uint32_t co = ~0;
+
+    if (o < offset)
+      rewind();
     while (offset < o) {
-      if ((sector == GD.SD.sectors_per_cluster) && ((o - offset) > (long)GD.SD.cluster_size))
-        skipcluster();
-      else
+      if ((sector == GD.SD.sectors_per_cluster) && ((o - offset) > (long)GD.SD.cluster_size)) {
+        uint32_t o;
+        if (GD.SD.type == FAT16)
+          o = (GD.SD.o_fat + 2 * cluster) & ~511;
+        else
+          o = (GD.SD.o_fat + 4 * cluster) & ~511;
+        if (o != co) {
+          GD.SD.rdn(buf, o, 512);
+          co = o;
+        }
+        cluster = fat32[cluster & 127];
+        offset += GD.SD.cluster_size;
+      } else
         skipsector();
     }
   }
@@ -668,7 +693,7 @@ public:
     SPI.transfer(0xff);
     GD.SD.desel();
   }
-  uint32_t cluster;
+  uint32_t cluster, cluster0;
   uint32_t offset;
   uint32_t size;
   byte sector;
