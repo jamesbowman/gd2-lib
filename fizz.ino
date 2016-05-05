@@ -18,7 +18,7 @@ void loop() //' a{
                 GD.random(256),
                 GD.random(256));
     GD.ColorA(GD.random(256));
-    GD.Vertex2ii(GD.random(480), GD.random(272));
+    GD.Vertex2f(GD.random(16 * GD.w), GD.random(16 * GD.h));
   }
   GD.swap();
 } //' }a
