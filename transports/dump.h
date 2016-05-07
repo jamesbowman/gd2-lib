@@ -1,13 +1,22 @@
 class GDTransport {
   FILE *dumpfile;
-public:
-  void begin(void) {
-    dumpfile = fopen("dump", "wb");
+  int counter;
+  void hose(void) {
+    char fn[2048];
+    sprintf(fn, "%04d.cmd", counter);
+    dumpfile = fopen(fn, "wb");
     if (!dumpfile) {
-      perror("dump");
+      perror(fn);
       exit(1);
     }
   }
+public:
+  void begin(void) {
+    counter = 0;
+    ft8xx_model = 1;
+    hose();
+  }
+  static void hostcmd(byte a) {}
   void cmdbyte(byte x) {
     putc(x, dumpfile);
   }
@@ -35,5 +44,10 @@ public:
   uint32_t getwp(void) { return 0; }
   void bulk(uint32_t addr) {}
   void resume(void) {}
+  void swap() {
+    fclose(dumpfile);
+    counter++;
+    hose();
+  }
 };
 

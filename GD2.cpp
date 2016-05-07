@@ -6,20 +6,20 @@
 #define VERBOSE       0
 #include <GD2.h>
 
-#define SD_PIN        9   // pin used for the microSD enable signal
+#define SD_PIN        9    // pin used for the microSD enable signal
 
 #define BOARD_FTDI_80x    0
-#define BOARD_GAMEDUINO2  1
+#define BOARD_GAMEDUINO23 1
 #define BOARD_EVITA_0     2
 
-#define BOARD         BOARD_GAMEDUINO2 // board, from above
-#define STORAGE       1                // Want SD storage?
-#define CALIBRATION   1                // Want touchscreen?
+#define BOARD         BOARD_GAMEDUINO23 // board, from above
+#define STORAGE       1                 // Want SD storage?
+#define CALIBRATION   1                 // Want touchscreen?
 
 // EVITA_0 has no storage or calibration
 #if (BOARD == BOARD_EVITA_0)
-#undef STORAGE
-#define STORAGE 0
+// #undef STORAGE
+// #define STORAGE 0
 #undef CALIBRATION
 #define CALIBRATION 0
 #endif
@@ -60,6 +60,118 @@ byte ft8xx_model;
 static GDTransport GDTR;
 
 GDClass GD;
+
+// The GD3 has a tiny configuration EEPROM - AT24C01D
+// It is programmed at manufacturing time with the setup
+// commands for the connected panel. The SCL,SDA lines
+// are connected to thye FT81x GPIO0, GPIO1 signals.
+// This is a read-only driver for it.  A single method
+// 'read()' initializes the RAM and reads all 128 bytes
+// into an array.
+
+class ConfigRam {
+private:
+  uint8_t gpio, gpio_dir, sda;
+  void set_SDA(byte n)
+  {
+    if (sda != n) {
+      GDTR.__wr16(REG_GPIO_DIR, gpio_dir | (0x03 - n));    // Drive SCL, SDA low
+      sda = n;
+    }
+  }
+
+  void set_SCL(byte n)
+  {
+    GDTR.__wr16(REG_GPIO, gpio | (n << 1));
+  }
+
+  int get_SDA(void)
+  {
+    return GDTR.__rd16(REG_GPIO) & 1;
+  }
+
+  void i2c_start(void) 
+  {
+    set_SDA(1);
+    set_SCL(1);
+    set_SDA(0);
+    set_SCL(0);
+  }
+
+  void i2c_stop(void) 
+  {
+    set_SDA(0);
+    set_SCL(1);
+    set_SDA(1);
+    set_SCL(1);
+  }
+
+  int i2c_rx1()
+  {
+    set_SDA(1);
+    set_SCL(1);
+    byte r = get_SDA();
+    set_SCL(0);
+    return r;
+  }
+
+  void i2c_tx1(byte b)
+  {
+    set_SDA(b);
+    set_SCL(1);
+    set_SCL(0);
+  }
+
+  int i2c_tx(byte x)
+  {
+    for (byte i = 0; i < 8; i++, x <<= 1)
+      i2c_tx1(x >> 7);
+    return i2c_rx1();
+  }
+
+  int i2c_rx(int nak)
+  {
+    byte r = 0;
+    for (byte i = 0; i < 8; i++)
+      r = (r << 1) | i2c_rx1();
+    i2c_tx1(nak);
+    return r;
+  }
+
+public:
+  void read(byte *v)
+  {
+    GDTR.__end();
+    gpio = GDTR.__rd16(REG_GPIO) & ~3;
+    gpio_dir = GDTR.__rd16(REG_GPIO_DIR) & ~3;
+    sda = 2;
+
+    // 2-wire software reset
+    i2c_start();
+    i2c_rx(1);
+    i2c_start();
+    i2c_stop();
+
+    int ADDR = 0xa0;
+
+    i2c_start();
+    if (i2c_tx(ADDR))
+      return;
+    if (i2c_tx(0))
+      return;
+
+    i2c_start();
+    if (i2c_tx(ADDR | 1))
+      return;
+    for (int i = 0; i < 128; i++) {
+      *v++ = i2c_rx(i == 127);
+      // Serial.println(v[-1], DEC);
+    }
+    i2c_stop();
+    GDTR.resume();
+  }
+};
+
 void GDClass::flush(void)
 {
   GDTR.flush();
@@ -71,6 +183,9 @@ void GDClass::swap(void) {
   cmd_loadidentity();
   cmd_dlstart();
   GDTR.flush();
+#ifdef DUMPDEV
+  GDTR.swap();
+#endif
 }
 
 uint32_t GDClass::measure_freq(void)
@@ -88,50 +203,78 @@ uint32_t GDClass::measure_freq(void)
 void GDClass::tune(void)
 {
   uint32_t f;
-  for (byte i = 0; (i < 31) && ((f = measure_freq()) < LOW_FREQ_BOUND); i++)
+  for (byte i = 0; (i < 31) && ((f = measure_freq()) < LOW_FREQ_BOUND); i++) {
     GDTR.wr(REG_TRIM, i);
+  }
   GDTR.wr32(REG_FREQUENCY, f);
 }
 
 void GDClass::begin(uint8_t options) {
 #if STORAGE && defined(ARDUINO)
+  GDTR.begin0();
+
   if (options & GD_STORAGE) {
     GDTR.ios();
     SD.begin(SD_PIN);
   }
 #endif
 
-  GDTR.begin();
+  GDTR.begin1();
 
-#if VERBOSE
+#if 0
   Serial.println("ID REGISTER:");
   Serial.println(GDTR.rd(REG_ID), HEX);
 #endif
 
-  // Generate a blank screen
-  cmd_dlstart();
-#ifndef DUMPDEV
-  Clear();
-  swap();
-#endif
-  finish();
-
 #if (BOARD == BOARD_FTDI_80x)
-  w = 480, h = 272;
   GDTR.wr(REG_PCLK_POL, 1);
   GDTR.wr(REG_PCLK, 5);
+#endif
+  GDTR.wr(REG_PWM_DUTY, 0);
+  GDTR.wr(REG_GPIO_DIR, 0x83);
+  GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x80);
+
+#if (BOARD == BOARD_GAMEDUINO23)
+  ConfigRam cr;
+  byte v8[128] = {0};
+  cr.read(v8);
+  if ((v8[1] == 0xff) && (v8[2] == 0x01)) {
+    options &= ~(GD_TRIM | GD_CALIBRATE);
+    if (v8[3] & 2) {
+      GDTR.__end();
+      GDTR.hostcmd(0x44); // switch to external crystal
+      GDTR.resume();
+    }
+    copyram(v8 + 4, 124);
+    finish();
+  } else {
+    GDTR.wr(REG_PCLK_POL, 1);
+    GDTR.wr(REG_PCLK, 5);
+    GDTR.wr(REG_ROTATE, 1);
+    GDTR.wr(REG_SWIZZLE, 3);
+  }
 #endif
 
-#if (BOARD == BOARD_GAMEDUINO2)
-  w = 480, h = 272;
-  GDTR.wr(REG_PCLK_POL, 1);
-  GDTR.wr(REG_PCLK, 5);
-  GDTR.wr(REG_ROTATE, 1);
-  GDTR.wr(REG_SWIZZLE, 3);
-#endif
+  if (0) {
+    GDTR.wr16(REG_HCYCLE, 928);
+    GDTR.wr16(REG_HOFFSET, 88);
+    GDTR.wr16(REG_HSIZE, 800);
+    GDTR.wr16(REG_HSYNC0, 0);
+    GDTR.wr16(REG_HSYNC1, 48);
+
+    GDTR.wr16(REG_VCYCLE, 525);
+    GDTR.wr16(REG_VOFFSET, 32);
+    GDTR.wr16(REG_VSIZE, 480);
+    GDTR.wr16(REG_VSYNC0, 0);
+    GDTR.wr16(REG_VSYNC1, 3);
+
+    GDTR.wr16(REG_CSPREAD, 0);
+    GDTR.wr16(REG_DITHER, 1);
+    GDTR.wr16(REG_PCLK_POL, 1);
+    GDTR.wr16(REG_PCLK, 2);
+  }
 
 #if (BOARD == BOARD_EVITA_0)
-  w = 1024, h = 768;
   GDTR.wr16(REG_HCYCLE,  1344);
   GDTR.wr16(REG_HSIZE,   1024);
   GDTR.wr16(REG_HSYNC0,  0   );
@@ -145,15 +288,23 @@ void GDClass::begin(uint8_t options) {
   GDTR.wr16(REG_CSPREAD, 0   );
   GDTR.wr16(REG_PCLK_POL,0   );
   GDTR.wr16(REG_PCLK,    1   );
+  GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x10);
 #endif
 
-  GDTR.wr(REG_GPIO_DIR, 0x83);
-  GDTR.wr(REG_GPIO, 0x80);
+  w = GDTR.rd16(REG_HSIZE);
+  h = GDTR.rd16(REG_VSIZE);
+  // w = 480, h = 272;
+  Clear(); swap();
+  Clear(); swap();
+  Clear(); swap();
+  cmd_regwrite(REG_PWM_DUTY, 128);
+  GD.flush();
+// Serial.println("STOP"); for(;;);
 
   if (CALIBRATION & (options & GD_CALIBRATE)) {
 
 #if defined(ARDUINO) && !defined(__DUE__)
-    if (EEPROM.read(0) != 0x7c) {
+    if ((EEPROM.read(0) != 0x7c)) {
       self_calibrate();
       // for (int i = 0; i < 24; i++) Serial.println(GDTR.rd(REG_TOUCH_TRANSFORM_A + i), HEX);
       for (int i = 0; i < 24; i++)
@@ -208,7 +359,7 @@ void GDClass::begin(uint8_t options) {
 
   rseed = 0x77777777;
 
-  if (options & GD_TRIM) {
+  if ((BOARD == BOARD_GAMEDUINO23) && (options & GD_TRIM)) {
     tune();
   }
 }
@@ -416,6 +567,11 @@ void GDClass::BitmapSize(byte filter, byte wrapx, byte wrapy, uint16_t width, ui
   b[2] = (3 & (width >> 7)) | (fxy << 2);
   b[3] = 8;
   cI(c);
+  if (ft8xx_model) {
+    b[0] = ((width >> 9) << 2) | (3 & (height >> 9));
+    b[3] = 0x29;
+    cI(c);
+  }
 }
 void GDClass::BitmapSource(uint32_t addr) {
   cI((1UL << 24) | ((addr & 1048575L) << 0));
@@ -560,6 +716,27 @@ void GDClass::Vertex2ii(uint16_t x, uint16_t y, byte handle, byte cell) {
   b[2] = (y >> 4) | (x << 5);
   b[3] = (2 << 6) | (x >> 3);
   cI(c);
+}
+void GDClass::VertexFormat(byte frac) {
+  cI((39UL << 24) | (((frac) & 7) << 0));
+}
+void GDClass::BitmapLayoutH(byte linestride, byte height) {
+  cI((40 << 24) | (((linestride) & 3) << 2) | (((height) & 3) << 0));
+}
+void GDClass::BitmapSizeH(byte width, byte height) {
+  cI((41UL << 24) | (((width) & 3) << 2) | (((height) & 3) << 0));
+}
+void GDClass::PaletteSource(uint32_t addr) {
+  cI((42UL << 24) | (((addr) & 4194303UL) << 0));
+}
+void GDClass::VertexTranslateX(uint32_t x) {
+  cI((43UL << 24) | (((x) & 131071UL) << 0));
+}
+void GDClass::VertexTranslateY(uint32_t y) {
+  cI((44UL << 24) | (((y) & 131071UL) << 0));
+}
+void GDClass::Nop(void) {
+  cI((45UL << 24));
 }
 
 void GDClass::cmd_append(uint32_t ptr, uint32_t num) {
@@ -842,6 +1019,60 @@ void GDClass::cmd_translate(int32_t tx, int32_t ty) {
   ci(tx);
   ci(ty);
 }
+void GDClass::cmd_playvideo(int32_t options) {
+  cFFFFFF(0x3a);
+  cI(options);
+}
+void GDClass::cmd_romfont(uint32_t font, uint32_t romslot) {
+  cFFFFFF(0x3f);
+  cI(font);
+  cI(romslot);
+}
+void GDClass::cmd_mediafifo(uint32_t ptr, uint32_t size) {
+  cFFFFFF(0x39);
+  cI(ptr);
+  cI(size);
+}
+void GDClass::cmd_setbase(uint32_t b) {
+  cFFFFFF(0x38);
+  cI(b);
+}
+void GDClass::cmd_videoframe(uint32_t dst, uint32_t ptr) {
+  cFFFFFF(0x41);
+  cI(dst);
+  cI(ptr);
+}
+void GDClass::cmd_snapshot2(uint32_t fmt, uint32_t ptr, int16_t x, int16_t y, int16_t w, int16_t h) {
+  cFFFFFF(0x37);
+  cI(fmt);
+  cI(ptr);
+  ch(x);
+  ch(y);
+  ch(w);
+  ch(h);
+}
+void GDClass::cmd_setfont2(uint32_t font, uint32_t ptr, uint32_t firstchar) {
+  cFFFFFF(0x3b);
+  cI(font);
+  cI(ptr);
+  cI(firstchar);
+}
+void GDClass::cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t h) {
+  cFFFFFF(0x43);
+  cI(source);
+  ch(fmt);
+  ch(w);
+  ch(h);
+  ch(0);
+}
+
+void GDClass::cmd_setrotate(uint32_t r) {
+  cFFFFFF(0x36);
+  cI(r);
+}
+void GDClass::cmd_videostart() {
+  cFFFFFF(0x40);
+}
 
 byte GDClass::rd(uint32_t addr) {
   return GDTR.rd(addr);
@@ -965,9 +1196,11 @@ void GDClass::reset() {
 byte GDClass::load(const char *filename, void (*progress)(long, long))
 {
 #if defined(RASPBERRY_PI) || defined(DUMPDEV)
-  FILE *f = fopen(filename, "rb");
+  char full_name[2048]  = "sdcard/";
+  strcat(full_name, filename);
+  FILE *f = fopen(full_name, "rb");
   if (!f) {
-    perror(filename);
+    perror(full_name);
     exit(1);
   }
   byte buf[512];
@@ -1038,13 +1271,14 @@ void GDClass::safeload(const char *filename)
   }
 }
 
-#define REG_SCREENSHOT_EN    0x00102410UL // Set to enable screenshot mode
-#define REG_SCREENSHOT_Y     0x00102414UL // Y line register
-#define REG_SCREENSHOT_START 0x00102418UL // Screenshot start trigger
-#define REG_SCREENSHOT_BUSY  0x001024d8UL // Screenshot ready flags
-#define REG_SCREENSHOT_READ  0x00102554UL // Set to enable readout
-#define RAM_SCREENSHOT       0x001C2000UL // Screenshot readout buffer
+#define REG_SCREENSHOT_EN    (ft8xx_model ? 0x302010UL : 0x102410UL) // Set to enable screenshot mode
+#define REG_SCREENSHOT_Y     (ft8xx_model ? 0x302014UL : 0x102414UL) // Y line register
+#define REG_SCREENSHOT_START (ft8xx_model ? 0x302018UL : 0x102418UL) // Screenshot start trigger
+#define REG_SCREENSHOT_BUSY  (ft8xx_model ? 0x3020e8UL : 0x1024d8UL) // Screenshot ready flags
+#define REG_SCREENSHOT_READ  (ft8xx_model ? 0x302174UL : 0x102554UL) // Set to enable readout
+#define RAM_SCREENSHOT       (ft8xx_model ? 0x3c2000UL : 0x1C2000UL) // Screenshot readout buffer
 
+#if 0 // ndef DUMPDEV
 void GDClass::dumpscreen(void)    
 {
   {
@@ -1052,7 +1286,11 @@ void GDClass::dumpscreen(void)
 
     wr(REG_SCREENSHOT_EN, 1);
     Serial.write(0xa5);
-    for (int ly = 0; ly < 272; ly++) {
+    Serial.write(GD.w & 0xff);
+    Serial.write((GD.w >> 8) & 0xff);
+    Serial.write(GD.h & 0xff);
+    Serial.write((GD.h >> 8) & 0xff);
+    for (int ly = 0; ly < GD.h; ly++) {
       wr16(REG_SCREENSHOT_Y, ly);
       wr(REG_SCREENSHOT_START, 1);
       delay(2);
@@ -1061,7 +1299,7 @@ void GDClass::dumpscreen(void)
       wr(REG_SCREENSHOT_READ, 1);
       bulkrd(RAM_SCREENSHOT);
       SPI.transfer(0xff);
-      for (int x = 0; x < 480; x += 8) {
+      for (int x = 0; x < GD.w; x += 8) {
         union {
           uint32_t v;
           struct {
@@ -1074,6 +1312,7 @@ void GDClass::dumpscreen(void)
           block[i].r = SPI.transfer(0xff);
           block[i].a = SPI.transfer(0xff);
         }
+        // if (x == 0) block[0].r = 0xff;
         byte difference = 1;
         for (int i = 1, mask = 2; i < 8; i++, mask <<= 1)
           if (block[i].v != block[i-1].v)
@@ -1093,3 +1332,4 @@ void GDClass::dumpscreen(void)
     wr16(REG_SCREENSHOT_EN, 0);
   }
 }
+#endif
