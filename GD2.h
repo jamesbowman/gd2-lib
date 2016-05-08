@@ -1057,7 +1057,9 @@ public:
              uint16_t freq = 44100,
              byte format = ADPCM_SAMPLES,
              uint32_t _base = (0x40000UL - 8192), uint16_t size = 8192) {
+    GD.__end();
     r.openfile(rawsamples);
+    GD.resume();
 
     base = _base;
     mask = size - 1;
