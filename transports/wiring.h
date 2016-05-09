@@ -15,7 +15,7 @@ public:
     SPI.begin();
     // for (;;) SPI.transfer(0x33);
   }
-  void begin() {
+  void begin0() {
     ios();
 
     SPI.begin();
@@ -29,11 +29,18 @@ public:
 #endif
 
     hostcmd(0x00);
-#if (BOARD != BOARD_GAMEDUINO2)
-    hostcmd(0x44); // from external crystal
+#if (BOARD != BOARD_GAMEDUINO23)
+ hostcmd(0x44); // from external crystal
 #endif
     hostcmd(0x68);
+  }
+  void begin1() {
+#if 0
     delay(120);
+#else
+    while ((__rd16(0xc0000UL) & 0xff) != 0x08)
+      ;
+#endif
 
     // Test point: saturate SPI
     while (0) {
@@ -42,6 +49,7 @@ public:
       digitalWrite(CS, HIGH);
     }
 
+#if 0
     // Test point: attempt to wake up FT8xx every 2 seconds
     while (0) {
       hostcmd(0x00);
@@ -60,10 +68,11 @@ public:
       digitalWrite(CS, HIGH);
       delay(2000);
     }
+#endif
 
     // So that FT800,801      FT81x
     // model       0            1
-    ft8xx_model = rd(0x0c0001) >> 4;  
+    ft8xx_model = __rd16(0x0c0000) >> 12;  
 
     wp = 0;
     freespace = 4096 - 4;
@@ -203,8 +212,20 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
-    while (n--)
-      SPI.transfer(*src++);
+    while (n--) {
+      SPDR = *src++;
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+    }
+    while (!(SPSR & _BV(SPIF))) ;
     stream();
   }
 
@@ -292,7 +313,6 @@ public:
     SPI.transfer(0x00);
     SPI.transfer(0x00);
     digitalWrite(CS, HIGH);
-    delay(60);
   }
 
   void getfree(uint16_t n)
@@ -311,4 +331,3 @@ public:
   uint16_t wp;
   uint16_t freespace;
 };
-

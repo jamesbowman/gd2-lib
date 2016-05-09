@@ -239,11 +239,11 @@ class sdcard {
       appcmd(41, sdhc ? (1UL << 30) : 0); // card init
       r1 = R1();
 #if VERBOSE
-    Serial.println(r1, HEX);
+      Serial.println(r1, HEX);
 #endif
       if ((r1 & 1) == 0)
         break;
-      delay(100);
+      delay(1);
     }
     INFO("OK");
 
@@ -260,6 +260,7 @@ class sdcard {
 
     // Test point: dump sector 0 to serial.
     // should see first 512 bytes of card, ending 55 AA.
+#if 0
     if (0) {
       cmd17(0);
       for (int i = 0; i < 512; i++) {
@@ -273,6 +274,12 @@ class sdcard {
       desel();
       for (;;);
     }
+#endif
+
+#if !defined(__DUE__)
+    SPI.setClockDivider(SPI_CLOCK_DIV2);
+    SPSR = (1 << SPI2X);
+#endif
 
     type_code = rd(0x1be + 0x4);
     switch (type_code) {
@@ -315,10 +322,6 @@ class sdcard {
   finished:
     INFO("finished");
     ;
-#if !defined(__DUE__)
-    SPI.setClockDivider(SPI_CLOCK_DIV2);
-    SPSR = (1 << SPI2X);
-#endif
   }
   void cmd17(uint32_t off) {
     if (ccs)
@@ -489,6 +492,14 @@ public:
   void Vertex2f(int16_t x, int16_t y);
   void Vertex2ii(uint16_t x, uint16_t y, byte handle = 0, byte cell = 0);
 
+  void VertexFormat(byte frac);
+  void BitmapLayoutH(byte linestride, byte height);
+  void BitmapSizeH(byte width, byte height);
+  void PaletteSource(uint32_t addr);
+  void VertexTranslateX(uint32_t x);
+  void VertexTranslateY(uint32_t y);
+  void Nop(void);
+
   // Higher-level graphics commands
 
   void cmd_append(uint32_t ptr, uint32_t num);
@@ -535,6 +546,17 @@ public:
   void cmd_toggle(int16_t x, int16_t y, int16_t w, byte font, uint16_t options, uint16_t state, const char *s);
   void cmd_track(int16_t x, int16_t y, uint16_t w, uint16_t h, byte tag);
   void cmd_translate(int32_t tx, int32_t ty);
+
+  void cmd_playvideo(int32_t options);
+  void cmd_romfont(uint32_t font, uint32_t romslot);
+  void cmd_mediafifo(uint32_t ptr, uint32_t size);
+  void cmd_setbase(uint32_t b);
+  void cmd_videoframe(uint32_t dst, uint32_t ptr);
+  void cmd_snapshot2(uint32_t fmt, uint32_t ptr, int16_t x, int16_t y, int16_t w, int16_t h);
+  void cmd_setfont2(uint32_t font, uint32_t ptr, uint32_t firstchar);
+  void cmd_setrotate(uint32_t r);
+  void cmd_videostart();
+  void cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t h);
 
   byte rd(uint32_t addr);
   void wr(uint32_t addr, uint8_t v);
@@ -601,18 +623,22 @@ public:
     } while (de.name[0]);
     return 0;
   }
+
   void begin(dirent &de) {
+    nseq = 0;
     size = de.size;
     cluster0 = de.cluster;
     if (GD.SD.type == FAT32)
       cluster0 |= ((long)de.cluster_hi << 16);
     rewind();
   }
+
   void rewind(void) {
     cluster = cluster0;
     sector = 0;
     offset = 0;
   }
+
   void nextcluster() {
     if (GD.SD.type == FAT16)
       cluster = GD.SD.rd2(GD.SD.o_fat + 2 * cluster);
@@ -623,10 +649,61 @@ public:
     Serial.println(cluster, DEC);
 #endif
   }
+
+  void fetch512(byte *dst) {
+#if defined(__DUE__) || defined(TEENSYDUINO)
+    for (int i = 0; i < 512; i++)
+      *dst++ = SPI.transfer(0xff);
+    SPI.transfer(0xff);   // consume CRC
+    SPI.transfer(0xff);
+#else
+    SPDR = 0xff;
+    while (!(SPSR & _BV(SPIF))) ;
+    for (int i = 0; i < 512; i++) {
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      asm volatile("nop");
+      *dst++ = SPDR;
+      SPDR = 0xff;
+    }
+    while (!(SPSR & _BV(SPIF))) ;
+    SPI.transfer(0xff);
+#endif
+    GD.SD.desel();
+  }
+
+  void nextcluster2(byte *dst) {
+    if (nseq) {
+      nseq--;
+      cluster++;
+      return;
+    }
+    uint32_t off = GD.SD.o_fat + 4 * cluster;
+    GD.SD.cmd17(off & ~511L);
+    fetch512(dst);
+    int i = off & 511;
+    cluster = *(uint32_t*)&dst[i];
+    uint32_t c = cluster;
+    nseq = 0;
+    for (uint32_t c = cluster;
+         (i < 512) && *(uint32_t*)&dst[i] == c; 
+         i += 4, c++)
+      nseq++;
+  }
+
   void skipcluster() {
     nextcluster();
     offset += GD.SD.cluster_size;
   }
+
   void skipsector() {
     if (sector == GD.SD.sectors_per_cluster) {
       sector = 0;
@@ -635,6 +712,7 @@ public:
     sector++;
     offset += 512;
   }
+
   void seek(uint32_t o) {
     union {
       uint8_t buf[512];
@@ -662,41 +740,28 @@ public:
         skipsector();
     }
   }
-  void readsector() {
+
+  void readsector(byte *dst) {
     if (sector == GD.SD.sectors_per_cluster) {
       sector = 0;
-      nextcluster();
+      nextcluster2(dst);
     }
     uint32_t off = GD.SD.o_data + ((long)GD.SD.cluster_size * cluster) + (512L * sector);
-#if VERBOSE
-    Serial.print("off=0x");
-    Serial.println(off, HEX);
-#endif
     GD.SD.cmd17(off & ~511L);
-// Serial.println(2 * (micros() - t0), DEC);
     sector++;
     offset += 512;
+    fetch512(dst);
   }
-  void readsector(byte *dst) {
-    readsector();
-    for (int i = 0; i < 64; i++) {
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-      *dst++ = SPI.transfer(0xff);
-    }
-    SPI.transfer(0xff);   // consume CRC
-    SPI.transfer(0xff);
-    GD.SD.desel();
+
+  int eof(void) {
+    return size <= offset;
   }
+
   uint32_t cluster, cluster0;
   uint32_t offset;
   uint32_t size;
   byte sector;
+  byte nseq;
 };
 #endif
 
@@ -792,6 +857,10 @@ typedef struct {
 #define OPT_NOHANDS          49152
 #define OPT_RIGHTX           2048
 #define OPT_SIGNED           256
+
+#define OPT_NOTEAR           4
+#define OPT_FULLSCREEN       8
+#define OPT_MEDIAFIFO        16
 
 #define LINEAR_SAMPLES       0
 #define ULAW_SAMPLES         1
@@ -912,6 +981,9 @@ typedef struct {
 #define REG_VSYNC0            (ft8xx_model ? 0x30204cUL : 0x102448UL)
 #define REG_VSYNC1            (ft8xx_model ? 0x302050UL : 0x10244cUL)
 
+#define REG_MEDIAFIFO_READ    0x309014
+#define REG_MEDIAFIFO_WRITE   0x309018
+
 #define VERTEX2II(x, y, handle, cell) \
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))
 
@@ -985,7 +1057,9 @@ public:
              uint16_t freq = 44100,
              byte format = ADPCM_SAMPLES,
              uint32_t _base = (0x40000UL - 8192), uint16_t size = 8192) {
+    GD.__end();
     r.openfile(rawsamples);
+    GD.resume();
 
     base = _base;
     mask = size - 1;
