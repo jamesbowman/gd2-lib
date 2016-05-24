@@ -208,6 +208,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
+#ifdef ARDUINO_AVR_UNO
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
@@ -228,6 +229,16 @@ public:
     while (!(SPSR & _BV(SPIF))) ;
     stream();
   }
+#else
+  void wr_n(uint32_t addr, byte *src, uint16_t n)
+  {
+    __end(); // stop streaming
+    __wstart(addr);
+    while (n--)
+      SPI.transfer(*src++);
+    stream();
+  }
+#endif
 
   void wr32(uint32_t addr, unsigned long v)
   {
