@@ -597,7 +597,7 @@ private:
 
   uint32_t measure_freq(void);
 
-  uint32_t rseed;
+  uint16_t rseed;
 };
 
 extern GDClass GD;
@@ -770,6 +770,9 @@ typedef struct {
   uint16_t w, h;
   uint16_t size;
 } shape_t;
+
+// convert integer pixels to subpixels
+#define PIXELS(x)  int((x) * 16)
 
 // Convert degrees to Furmans
 #define DEGREES(n) ((65536UL * (n)) / 360)
@@ -1048,6 +1051,52 @@ class Poly {
       GD.Begin(LINE_STRIP);
       perim();
     }
+};
+
+class xy {
+public:
+  int x, y;
+  void set(int _x, int _y) {
+    x = _x;
+    y = _y;
+  }
+  void rmove(int distance, int angle) {
+    x -= GD.rsin(distance, angle);
+    y += GD.rcos(distance, angle);
+  }
+  int angleto(class xy &other) {
+    int dx = other.x - x, dy = other.y - y;
+    return GD.atan2(dy, dx);
+  }
+  void draw(byte offset = 0) {
+    GD.Vertex2f(x - PIXELS(offset), y - PIXELS(offset));
+  }
+  int onscreen(void) {
+    return (0 <= x) &&
+           (x < PIXELS(GD.w)) &&
+           (0 <= y) &&
+           (y < PIXELS(GD.h));
+  }
+  class xy operator+=(class xy &other) {
+    x += other.x;
+    y += other.y;
+    return *this;
+  }
+  int nearer_than(int distance, xy &other) {
+    int lx = abs(x - other.x);
+    if (lx > distance)
+      return 0;
+    int ly = abs(y - other.y);
+    if (ly > distance)
+      return 0;
+
+    // trivial accept: 5/8 is smaller than 1/sqrt(2)
+    int d2 = (5 * distance) >> 3;
+    if ((lx < d2) && (ly < d2))
+      return 1;
+
+    return ((lx * lx) + (ly * ly)) < (distance * distance);
+  }
 };
 
 #if SDCARD
