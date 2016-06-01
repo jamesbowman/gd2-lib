@@ -386,17 +386,18 @@ void GDClass::seed(uint16_t n) {
 }
 
 uint16_t GDClass::random() {
-  rseed ^= rseed << 13;
-  rseed ^= rseed >> 17;
-  rseed ^= rseed << 5;
+  rseed ^= rseed << 2;
+  rseed ^= rseed >> 5;
+  rseed ^= rseed << 1;
   return rseed;
 }
 
 uint16_t GDClass::random(uint16_t n) {
-  uint32_t p = random();
-  return (p * n) >> 16;
+  uint16_t p = random();
+  if (n == (n & -n))
+    return p & (n - 1);
+  return (uint32_t(p) * n) >> 16;
 }
-
 
 // >>> [int(65535*math.sin(math.pi * 2 * i / 1024)) for i in range(257)]
 static const PROGMEM uint16_t sintab[257] = {
@@ -404,7 +405,7 @@ static const PROGMEM uint16_t sintab[257] = {
 };
 
 int16_t GDClass::rsin(int16_t r, uint16_t th) {
-  th >>= 6; // angle 0-123
+  th >>= 6; // angle 0-1023
   // return int(r * sin((2 * M_PI) * th / 1024.));
   int th4 = th & 511;
   if (th4 & 256)
@@ -1069,6 +1070,15 @@ void GDClass::cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t 
 void GDClass::cmd_setrotate(uint32_t r) {
   cFFFFFF(0x36);
   cI(r);
+  // As a special favor, update variables w and h according to this
+  // rotation
+  w = GDTR.rd16(REG_HSIZE);
+  h = GDTR.rd16(REG_VSIZE);
+  if (r & 2) {
+    int t = h;
+    h = w;
+    w = t;
+  }
 }
 void GDClass::cmd_videostart() {
   cFFFFFF(0x40);
@@ -1278,7 +1288,7 @@ void GDClass::safeload(const char *filename)
 #define REG_SCREENSHOT_READ  (ft8xx_model ? 0x302174UL : 0x102554UL) // Set to enable readout
 #define RAM_SCREENSHOT       (ft8xx_model ? 0x3c2000UL : 0x1C2000UL) // Screenshot readout buffer
 
-#if 0 // ndef DUMPDEV
+#ifndef DUMPDEV
 void GDClass::dumpscreen(void)    
 {
   {
