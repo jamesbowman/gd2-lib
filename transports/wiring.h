@@ -208,7 +208,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
-#ifdef ARDUINO_AVR_UNO
+#if defined(ARDUINO) && !defined(__DUE__)
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
