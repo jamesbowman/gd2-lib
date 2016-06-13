@@ -50,10 +50,6 @@ class Trail {
     }
 };
 
-struct xy {
-  int x, y;
-};
-
 struct {
   xy p[3];
   Trail trail[3];
