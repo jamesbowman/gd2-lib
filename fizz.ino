@@ -13,12 +13,10 @@ void loop() //' a{
   GD.Clear();
   GD.Begin(POINTS);
   for (int i = 0; i < 100; i++) {
-    GD.PointSize(GD.random(16 * 50));
-    GD.ColorRGB(GD.random(256),
-                GD.random(256),
-                GD.random(256));
-    GD.ColorA(GD.random(256));
-    GD.Vertex2f(GD.random(16 * GD.w), GD.random(16 * GD.h));
+    GD.PointSize(GD.random(2 * GD.w));
+    GD.ColorRGB(GD.random(), GD.random(), GD.random());
+    GD.ColorA(GD.random());
+    GD.Vertex2f(GD.random(PIXELS(GD.w)), GD.random(PIXELS(GD.h)));
   }
   GD.swap();
 } //' }a
