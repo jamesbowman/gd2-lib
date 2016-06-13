@@ -57,9 +57,71 @@ byte ft8xx_model;
 #include "transports/wiring.h"
 #endif
 
+////////////////////////////////////////////////////////////////////////
+
+void xy::set(int _x, int _y)
+{
+  x = _x;
+  y = _y;
+}
+
+void xy::rmove(int distance, int angle)
+{
+  x -= GD.rsin(distance, angle);
+  y += GD.rcos(distance, angle);
+}
+
+int xy::angleto(class xy &other)
+{
+  int dx = other.x - x, dy = other.y - y;
+  return GD.atan2(dy, dx);
+}
+
+void xy::draw(byte offset)
+{
+  GD.Vertex2f(x - PIXELS(offset), y - PIXELS(offset));
+}
+
+int xy::onscreen(void)
+{
+  return (0 <= x) &&
+         (x < PIXELS(GD.w)) &&
+         (0 <= y) &&
+         (y < PIXELS(GD.h));
+}
+
+class xy xy::operator+=(class xy &other)
+{
+  x += other.x;
+  y += other.y;
+  return *this;
+}
+
+int xy::nearer_than(int distance, xy &other)
+{
+  int lx = abs(x - other.x);
+  if (lx > distance)
+    return 0;
+  int ly = abs(y - other.y);
+  if (ly > distance)
+    return 0;
+
+  // trivial accept: 5/8 is smaller than 1/sqrt(2)
+  int d2 = (5 * distance) >> 3;
+  if ((lx < d2) && (ly < d2))
+    return 1;
+
+  return ((lx * lx) + (ly * ly)) < (distance * distance);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 static GDTransport GDTR;
 
 GDClass GD;
+
+////////////////////////////////////////////////////////////////////////
 
 // The GD3 has a tiny configuration EEPROM - AT24C01D
 // It is programmed at manufacturing time with the setup
@@ -210,10 +272,10 @@ void GDClass::tune(void)
 }
 
 void GDClass::begin(uint8_t options) {
-#if STORAGE && defined(ARDUINO)
+#if defined(ARDUINO)
   GDTR.begin0();
 
-  if (options & GD_STORAGE) {
+  if (STORAGE && (options & GD_STORAGE)) {
     GDTR.ios();
     SD.begin(SD_PIN);
   }
@@ -1161,6 +1223,8 @@ void GDClass::get_inputs(void) {
   GDTR.rd_n(bi, REG_TRACKER, 4);
   GDTR.rd_n(bi + 4, REG_TOUCH_RZ, 13);
   GDTR.rd_n(bi + 17, REG_TAG, 1);
+  inputs.touching = (inputs.x != -32768);
+  inputs.xytouch.set(PIXELS(inputs.x), PIXELS(inputs.y));
 #ifdef DUMP_INPUTS
   for (size_t i = 0; i < sizeof(inputs); i++) {
     Serial.print(bi[i], HEX);

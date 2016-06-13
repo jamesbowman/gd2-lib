@@ -406,6 +406,20 @@ public:
 
 ////////////////////////////////////////////////////////////////////////
 
+class xy {
+public:
+  int x, y;
+  void set(int _x, int _y);
+  void rmove(int distance, int angle);
+  int angleto(class xy &other);
+  void draw(byte offset = 0);
+  int onscreen(void);
+  class xy operator+=(class xy &other);
+  int nearer_than(int distance, xy &other);
+};
+
+////////////////////////////////////////////////////////////////////////
+
 class GDClass {
 public:
   int w, h;
@@ -445,6 +459,8 @@ public:
     int16_t tag_x;
     uint8_t tag;
     uint8_t ptag;
+    uint8_t touching;
+    xy xytouch;
   } inputs;
 
   void AlphaFunc(byte func, byte ref);
@@ -1051,52 +1067,6 @@ class Poly {
       GD.Begin(LINE_STRIP);
       perim();
     }
-};
-
-class xy {
-public:
-  int x, y;
-  void set(int _x, int _y) {
-    x = _x;
-    y = _y;
-  }
-  void rmove(int distance, int angle) {
-    x -= GD.rsin(distance, angle);
-    y += GD.rcos(distance, angle);
-  }
-  int angleto(class xy &other) {
-    int dx = other.x - x, dy = other.y - y;
-    return GD.atan2(dy, dx);
-  }
-  void draw(byte offset = 0) {
-    GD.Vertex2f(x - PIXELS(offset), y - PIXELS(offset));
-  }
-  int onscreen(void) {
-    return (0 <= x) &&
-           (x < PIXELS(GD.w)) &&
-           (0 <= y) &&
-           (y < PIXELS(GD.h));
-  }
-  class xy operator+=(class xy &other) {
-    x += other.x;
-    y += other.y;
-    return *this;
-  }
-  int nearer_than(int distance, xy &other) {
-    int lx = abs(x - other.x);
-    if (lx > distance)
-      return 0;
-    int ly = abs(y - other.y);
-    if (ly > distance)
-      return 0;
-
-    // trivial accept: 5/8 is smaller than 1/sqrt(2)
-    int d2 = (5 * distance) >> 3;
-    if ((lx < d2) && (ly < d2))
-      return 1;
-
-    return ((lx * lx) + (ly * ly)) < (distance * distance);
-  }
 };
 
 #if SDCARD

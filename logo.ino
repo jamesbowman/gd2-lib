@@ -20,20 +20,14 @@ byte clamp255(int x)
   return x;
 }
 
-struct xy {
-  int x, y;
-};
-
 #define NSTARS 256
 
 void loop()
 {
   byte fade;
   xy stars[NSTARS];
-  for (int i = 0; i < NSTARS; i++) {
-    stars[i].x = GD.random(16 * 480);
-    stars[i].y = GD.random(16 * 272);
-  }
+  for (int i = 0; i < NSTARS; i++)
+    stars[i].set(GD.random(PIXELS(GD.w)), GD.random(PIXELS(GD.h)));
 
   for (int t = 0; t < 464; t++) {
     GD.cmd_gradient(0, 0, 0x120000, 0, 272, 0x480000);
@@ -42,12 +36,12 @@ void loop()
     for (int i = 0; i < NSTARS; i++) {
       GD.ColorA(64 + (i >> 2));
       GD.PointSize(8 + (i >> 5));
-      GD.Vertex2f(stars[i].x, stars[i].y);
+      stars[i].draw();
       // stars drift left, then wrap around
       stars[i].x -= 1 + (i >> 5);
       if (stars[i].x < -256) {
-        stars[i].x += (16 * 500);
-        stars[i].y = GD.random(16 * 272);
+        stars[i].x += PIXELS(GD.w + 20);
+        stars[i].y = GD.random(PIXELS(GD.h));
       }
     }
     GD.RestoreContext();

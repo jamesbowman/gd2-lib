@@ -3,20 +3,16 @@
 #include <GD2.h>
 
 #define NBLOBS      128 //' a{
-#define OFFSCREEN   -16384
 
-struct xy {
-  int x, y;
-} blobs[NBLOBS];
+xy blobs[NBLOBS];
+const xy offscreen = {-16384, -16384};
 
 void setup()
 {
   GD.begin();
 
-  for (int i = 0; i < NBLOBS; i++) {
-    blobs[i].x = OFFSCREEN;
-    blobs[i].y = OFFSCREEN;
-  }
+  for (int i = 0; i < NBLOBS; i++)
+    blobs[i] = offscreen;
   Serial.begin(1000000);    // JCB
 } //' }a
 
@@ -24,13 +20,10 @@ void loop() //' b{
 {
   static byte blob_i;
   GD.get_inputs();
-  if (GD.inputs.x != -32768) {
-    blobs[blob_i].x = GD.inputs.x << 4; //' xy{
-    blobs[blob_i].y = GD.inputs.y << 4; //' }xy
-  } else {
-    blobs[blob_i].x = OFFSCREEN;
-    blobs[blob_i].y = OFFSCREEN;
-  }
+  if (GD.inputs.x != -32768)
+    blobs[blob_i] = GD.inputs.xytouch;
+  else
+    blobs[blob_i] = offscreen;
   blob_i = (blob_i + 1) & (NBLOBS - 1);
 
   GD.ClearColorRGB(0xd0d0c0); // JCB
@@ -59,7 +52,7 @@ void loop() //' b{
     GD.ColorRGB(r, g, b);
 
     // Draw it!
-    GD.Vertex2f(blobs[j].x, blobs[j].y);
+    blobs[j].draw();
   }
   GD.swap();
 } //' }b
