@@ -6,19 +6,19 @@ void setup() //' a{
 {
   Serial.begin(115200); // JCB
   GD.begin();
-  GD.cmd_memset(0, 0, 480UL * 272UL);   // clear the bitmap
+  GD.cmd_memset(0, 0, long(GD.w) * GD.h);   // clear the bitmap
   GD.Clear();                           // draw the bitmap
 
-  GD.ColorRGB(0x101020);
+  GD.ColorRGB(0x202030);
   GD.cmd_text(240, 136, 31, OPT_CENTER, "sketch demo");
 
-  GD.BitmapLayout(L8, 480, 272);
-  GD.BitmapSize(NEAREST, BORDER, BORDER, 480, 272);
+  GD.BitmapLayout(L8, GD.w, GD.h);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
   GD.Begin(BITMAPS);
   GD.ColorRGB(0xffffff);
   GD.Vertex2ii(0, 0);
   GD.swap();
-  GD.cmd_sketch(0, 0, 480, 272, 0, L8); // start sketching
+  GD.cmd_sketch(0, 0, GD.w, GD.h, 0, L8); // start sketching
   GD.finish();                          // flush all commands
 }
 
