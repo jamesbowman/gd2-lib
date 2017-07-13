@@ -415,6 +415,9 @@ public:
   void draw(byte offset = 0);
   int onscreen(void);
   class xy operator+=(class xy &other);
+  class xy operator-=(class xy &other);
+  long operator*(class xy &other);
+  class xy operator*=(int);
   int nearer_than(int distance, xy &other);
 };
 

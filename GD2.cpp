@@ -97,6 +97,25 @@ class xy xy::operator+=(class xy &other)
   return *this;
 }
 
+class xy xy::operator-=(class xy &other)
+{
+  x -= other.x;
+  y -= other.y;
+  return *this;
+}
+
+long xy::operator*(class xy &other)
+{
+  return (long(x) * other.x) + (long(y) * other.y);
+}
+
+class xy xy::operator*=(int s)
+{
+  x *= s;
+  y *= s;
+  return *this;
+}
+
 int xy::nearer_than(int distance, xy &other)
 {
   int lx = abs(x - other.x);
@@ -111,7 +130,9 @@ int xy::nearer_than(int distance, xy &other)
   if ((lx < d2) && (ly < d2))
     return 1;
 
-  return ((lx * lx) + (ly * ly)) < (distance * distance);
+#define SQ(c) (long(c) * (c))
+  return (SQ(lx) + SQ(ly)) < SQ(distance);
+#undef SQ
 }
 
 
