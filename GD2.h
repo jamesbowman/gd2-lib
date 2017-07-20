@@ -596,6 +596,7 @@ public:
   byte load(const char *filename, void (*progress)(long, long) = NULL);
   void safeload(const char *filename);
   void alert(const char *message);
+  void textsize(int &w, int &h, int font, const char *s);
 
   sdcard SD;
 
@@ -1002,6 +1003,7 @@ typedef struct {
 #define REG_VSIZE             (ft8xx_model ? 0x302048UL : 0x102444UL)
 #define REG_VSYNC0            (ft8xx_model ? 0x30204cUL : 0x102448UL)
 #define REG_VSYNC1            (ft8xx_model ? 0x302050UL : 0x10244cUL)
+#define FONT_ROOT             (ft8xx_model ? 0x2ffffcUL : 0x0ffffcUL)
 
 #define REG_MEDIAFIFO_READ    0x309014
 #define REG_MEDIAFIFO_WRITE   0x309018

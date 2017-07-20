@@ -72,6 +72,20 @@ static int randrange()
   return (total == (N * 100)) ? 0 : 1;
 }
 
+static int textsize()
+{
+  int w, h;
+
+  GD.textsize(w, h, 31, "");
+  if ((w != 0) || (h != 49))
+    return 1;
+  GD.textsize(w, h, 26, "hello world");
+  if ((w != 68) || (h != 16))
+    return 1;
+
+  return 0;
+}
+
 #define DOTEST(NAME) \
   do { \
   GD.cmd_text(110, y, 20, OPT_RIGHTX, #NAME); \
@@ -84,7 +98,7 @@ static int randrange()
 
 void setup()
 {
-  Serial.begin(115200); // JCB
+  Serial.begin(1000000); // JCB
   GD.begin(0);
   GD.cmd_memset(0, 0x40000UL, 0);
   GD.Clear();
@@ -94,6 +108,7 @@ void setup()
   DOTEST(setfont);
   DOTEST(atan2);
   DOTEST(randrange);
+  DOTEST(textsize);
 
   GD.swap();
 }

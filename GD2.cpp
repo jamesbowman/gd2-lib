@@ -1366,6 +1366,15 @@ void GDClass::safeload(const char *filename)
   }
 }
 
+void GDClass::textsize(int &w, int &h, int font, const char *s)
+{
+  uint32_t font_addr = rd32(FONT_ROOT) + 148 * (font - 16);
+  w = 0;
+  while (*s)
+    w += GD.rd(font_addr + *s++);
+  h = GD.rd(font_addr + 140);
+}
+
 #define REG_SCREENSHOT_EN    (ft8xx_model ? 0x302010UL : 0x102410UL) // Set to enable screenshot mode
 #define REG_SCREENSHOT_Y     (ft8xx_model ? 0x302014UL : 0x102414UL) // Y line register
 #define REG_SCREENSHOT_START (ft8xx_model ? 0x302018UL : 0x102418UL) // Screenshot start trigger
