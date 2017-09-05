@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) 2013-2017 by James Bowman <jamesb@excamera.com>
+ * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
+ * Teensy 3.2 and ESP8266.
+ *
+ */
+
 #include <Arduino.h>
 #include "SPI.h"
 #if !defined(__SAM3X8E__)
@@ -6,23 +13,18 @@
 #define VERBOSE       0
 #include <GD2.h>
 
-#define SD_PIN        9    // pin used for the microSD enable signal
+#if defined(ESP8266)
+#define SD_PIN        D9    // pin used for the microSD enable signal
+#else
+#define SD_PIN        9     // pin used for the microSD enable signal
+#endif
 
 #define BOARD_FTDI_80x    0
 #define BOARD_GAMEDUINO23 1
-#define BOARD_EVITA_0     2
 
 #define BOARD         BOARD_GAMEDUINO23 // board, from above
 #define STORAGE       1                 // Want SD storage?
 #define CALIBRATION   1                 // Want touchscreen?
-
-// EVITA_0 has no storage or calibration
-#if (BOARD == BOARD_EVITA_0)
-// #undef STORAGE
-// #define STORAGE 0
-#undef CALIBRATION
-#define CALIBRATION 0
-#endif
 
 // FTDI boards do not have storage
 #if (BOARD == BOARD_FTDI_80x)
@@ -104,6 +106,13 @@ class xy xy::operator-=(class xy &other)
   return *this;
 }
 
+class xy xy::operator<<=(int d)
+{
+  x <<= d;
+  y <<= d;
+  return *this;
+}
+
 long xy::operator*(class xy &other)
 {
   return (long(x) * other.x) + (long(y) * other.y);
@@ -135,6 +144,148 @@ int xy::nearer_than(int distance, xy &other)
 #undef SQ
 }
 
+void xy::rotate(int angle)
+{
+  // the hardware's convention that rotation is clockwise
+  int32_t s = GD.rsin(32767, angle);
+  int32_t c = GD.rcos(32767, angle);
+
+  int xr = ((x * c) - (y * s)) >> 15;
+  int yr = ((x * s) + (y * c)) >> 15;
+  x = xr;
+  y = yr;
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void Bitmap::fromtext(int font, const char* s)
+{
+  GD.textsize(size.x, size.y, font, s);
+
+  int pclk = GD.rd16(REG_PCLK);
+  int vsize = GD.rd16(REG_VSIZE);
+  int hsize = GD.rd16(REG_HSIZE);
+
+  GD.finish();
+  GD.wr(REG_PCLK, 0);
+  GD.wr16(REG_HSIZE, size.x);
+  GD.wr16(REG_VSIZE, size.y);
+
+  GD.cmd_dlstart();
+  GD.Clear();
+  GD.BlendFunc(1,1);
+  GD.cmd_text(0, 0, font, 0, s);
+
+  GD.swap();
+  GD.cmd_snapshot(GD.loadptr);
+  GD.finish();
+
+  GD.wr16(REG_HSIZE, hsize);
+  GD.wr16(REG_VSIZE, vsize);
+  GD.wr16(REG_PCLK, pclk);
+
+  defaults(ARGB4);
+}
+
+void Bitmap::fromfile(const char* filename)
+{
+  GD.cmd_loadimage(GD.loadptr, OPT_NODL);
+  GD.load(filename);
+  uint32_t ptr, w, h;
+  GD.cmd_getprops(ptr, w, h);
+  GD.finish();
+  size.x = GD.rd16(w);
+  size.y = GD.rd16(h);
+  defaults(RGB565);
+}
+
+void Bitmap::defaults(uint8_t f)
+{
+  source = GD.loadptr;
+  format = f;
+  handle = -1;
+  center.x = size.x / 2;
+  center.y = size.y / 2;
+  GD.loadptr += 2UL * size.x * size.y;
+}
+
+void Bitmap::setup(void)
+{
+  GD.BitmapSource(source);
+  GD.BitmapLayout(format, 2 * size.x, size.y);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
+}
+
+void Bitmap::bind(uint8_t h)
+{
+  handle = h;
+
+  GD.BitmapHandle(handle);
+  setup();
+}
+
+void Bitmap::draw(int x, int y, int16_t angle)
+{
+  if (handle == -1) {
+    GD.BitmapHandle(15);
+    setup();
+  } else {
+    GD.BitmapHandle(handle);
+  }
+  GD.Begin(BITMAPS);
+
+  xy pos;
+  pos.set(x, y);
+
+  if (angle == 0) {
+    pos -= center;
+    GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
+    GD.Vertex2f(pos.x << 4, pos.y << 4);
+  } else {
+    pos <<= 4;
+
+    // Compute the screen positions of 4 corners of the bitmap
+    xy corners[4] = {
+      {0,0              },
+      {size.x,  0       },
+      {0,       size.y  },
+      {size.x,  size.y  },
+    };
+    for (int i = 0; i < 4; i++) {
+      xy &c = corners[i];
+      c -= center;
+      c <<= 4;
+      c.rotate(angle);
+      c += pos;
+    }
+
+    // Find top-left and bottom-right boundaries
+    xy topleft, bottomright;
+    topleft.set(
+      min(min(corners[0].x, corners[1].x), min(corners[2].x, corners[3].x)),
+      min(min(corners[0].y, corners[1].y), min(corners[2].y, corners[3].y)));
+    bottomright.set(
+      max(max(corners[0].x, corners[1].x), max(corners[2].x, corners[3].x)),
+      max(max(corners[0].y, corners[1].y), max(corners[2].y, corners[3].y)));
+
+    // span is the total size of this region
+    xy span = bottomright;
+    span -= topleft;
+    GD.BitmapSize(BILINEAR, BORDER, BORDER,
+                  (span.x + 15) >> 4, (span.y + 15) >> 4);
+
+    // Set up the transform and draw the bitmap
+    pos -= topleft;
+    GD.SaveContext();
+    GD.cmd_loadidentity();
+    GD.cmd_translate((int32_t)pos.x << 12, (int32_t)pos.y << 12);
+    GD.cmd_rotate(angle);
+    GD.cmd_translate(F16(-center.x), F16(-center.y));
+    GD.cmd_setmatrix();
+    GD.Vertex2f(topleft.x, topleft.y);
+    GD.RestoreContext();
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -147,7 +298,7 @@ GDClass GD;
 // The GD3 has a tiny configuration EEPROM - AT24C01D
 // It is programmed at manufacturing time with the setup
 // commands for the connected panel. The SCL,SDA lines
-// are connected to thye FT81x GPIO0, GPIO1 signals.
+// are connected to the FT81x GPIO0, GPIO1 signals.
 // This is a read-only driver for it.  A single method
 // 'read()' initializes the RAM and reads all 128 bytes
 // into an array.
@@ -293,7 +444,7 @@ void GDClass::tune(void)
 }
 
 void GDClass::begin(uint8_t options) {
-#if defined(ARDUINO)
+#if defined(ARDUINO) || defined(ESP8266)
   GDTR.begin0();
 
   if (STORAGE && (options & GD_STORAGE)) {
@@ -313,6 +464,7 @@ void GDClass::begin(uint8_t options) {
   GDTR.wr(REG_PCLK_POL, 1);
   GDTR.wr(REG_PCLK, 5);
 #endif
+
   GDTR.wr(REG_PWM_DUTY, 0);
   GDTR.wr(REG_GPIO_DIR, 0x83);
   GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x80);
@@ -338,51 +490,22 @@ void GDClass::begin(uint8_t options) {
   }
 #endif
 
-  if (0) {
-    GDTR.wr16(REG_HCYCLE, 928);
-    GDTR.wr16(REG_HOFFSET, 88);
-    GDTR.wr16(REG_HSIZE, 800);
-    GDTR.wr16(REG_HSYNC0, 0);
-    GDTR.wr16(REG_HSYNC1, 48);
-
-    GDTR.wr16(REG_VCYCLE, 525);
-    GDTR.wr16(REG_VOFFSET, 32);
-    GDTR.wr16(REG_VSIZE, 480);
-    GDTR.wr16(REG_VSYNC0, 0);
-    GDTR.wr16(REG_VSYNC1, 3);
-
-    GDTR.wr16(REG_CSPREAD, 0);
-    GDTR.wr16(REG_DITHER, 1);
-    GDTR.wr16(REG_PCLK_POL, 1);
-    GDTR.wr16(REG_PCLK, 2);
-  }
-
-#if (BOARD == BOARD_EVITA_0)
-  GDTR.wr16(REG_HCYCLE,  1344);
-  GDTR.wr16(REG_HSIZE,   1024);
-  GDTR.wr16(REG_HSYNC0,  0   );
-  GDTR.wr16(REG_HSYNC1,  136 );
-  GDTR.wr16(REG_HOFFSET, 136+160);
-  GDTR.wr16(REG_VCYCLE,  806 );
-  GDTR.wr16(REG_VSIZE,   768 );
-  GDTR.wr16(REG_VSYNC0,  0   );
-  GDTR.wr16(REG_VSYNC1,  6    );
-  GDTR.wr16(REG_VOFFSET, 6+29  );
-  GDTR.wr16(REG_CSPREAD, 0   );
-  GDTR.wr16(REG_PCLK_POL,0   );
-  GDTR.wr16(REG_PCLK,    1   );
-  GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x10);
-#endif
-
   w = GDTR.rd16(REG_HSIZE);
   h = GDTR.rd16(REG_VSIZE);
-  // w = 480, h = 272;
+  loadptr = 0;
+
+  // Work-around issue with bitmap sizes not being reset
+  for (byte i = 0; i < 32; i++) {
+    BitmapHandle(i);
+    cI(0x28000000UL);
+    cI(0x29000000UL);
+  }
+
   Clear(); swap();
   Clear(); swap();
   Clear(); swap();
   cmd_regwrite(REG_PWM_DUTY, 128);
-  GD.flush();
-// Serial.println("STOP"); for(;;);
+  flush();
 
   if (CALIBRATION & (options & GD_CALIBRATE)) {
 
@@ -603,7 +726,11 @@ void GDClass::cs(const char *s) {
   align(count + 1);
 }
 
+#if !defined(ESP8266)
 void GDClass::copy(const PROGMEM uint8_t *src, int count) {
+#else
+void GDClass::copy(const uint8_t *src, int count) {
+#endif
   byte a = count & 3;
   while (count--) {
     GDTR.cmdbyte(pgm_read_byte_near(src));
@@ -805,7 +932,7 @@ void GDClass::VertexFormat(byte frac) {
   cI((39UL << 24) | (((frac) & 7) << 0));
 }
 void GDClass::BitmapLayoutH(byte linestride, byte height) {
-  cI((40 << 24) | (((linestride) & 3) << 2) | (((height) & 3) << 0));
+  cI((40UL << 24) | (((linestride) & 3) << 2) | (((height) & 3) << 0));
 }
 void GDClass::BitmapSizeH(byte width, byte height) {
   cI((41UL << 24) | (((width) & 3) << 2) | (((height) & 3) << 0));

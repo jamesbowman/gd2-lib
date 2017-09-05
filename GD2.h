@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
- * Gameduino 2 library for Arduino, Arduino Due, Raspberry Pi.
+ * Copyright (C) 2013-2017 by James Bowman <jamesb@excamera.com>
+ * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
+ * Teensy 3.2 and ESP8266.
  *
  */
 
@@ -209,7 +210,7 @@ class sdcard {
     desel();
 
   // for (;;) SPI.transfer(0xff);
-    delay(10);      // wait for boot
+    delay(50);      // wait for boot
     sd_delay(10);   // deselected, 80 pulses
 
     INFO("Attempting card reset... ");
@@ -235,6 +236,7 @@ class sdcard {
     REPORT(sdhc);
 
     INFO("Sending card init command");
+    attempts = 0;
     while (1) {
       appcmd(41, sdhc ? (1UL << 30) : 0); // card init
       r1 = R1();
@@ -243,15 +245,19 @@ class sdcard {
 #endif
       if ((r1 & 1) == 0)
         break;
+      if (++attempts == 300)
+        goto finished;
       delay(1);
     }
     INFO("OK");
 
     if (sdhc) {
-      cmd(58);
       uint32_t OCR = 0;
-      sdR3(OCR);
-      REPORT(OCR);
+      for (int i = 10; i; i--) {
+        cmd(58);
+        sdR3(OCR);
+        REPORT(OCR);
+      }
       ccs = 1UL & (OCR >> 30);
     } else {
       ccs = 0;
@@ -261,24 +267,26 @@ class sdcard {
     // Test point: dump sector 0 to serial.
     // should see first 512 bytes of card, ending 55 AA.
 #if 0
-    if (0) {
-      cmd17(0);
-      for (int i = 0; i < 512; i++) {
-        delay(10);
-        byte b = SPI.transfer(0xff);
-        Serial.print(b, HEX);
-        Serial.print(' ');
-        if ((i & 15) == 15)
-          Serial.println();
-      }
-      desel();
-      for (;;);
+    cmd17(0);
+    for (int i = 0; i < 512; i++) {
+      delay(10);
+      byte b = SPI.transfer(0xff);
+      Serial.print(b, HEX);
+      Serial.print(' ');
+      if ((i & 15) == 15)
+        Serial.println();
     }
+    desel();
+    for (;;);
 #endif
 
-#if !defined(__DUE__)
+#if !defined(__DUE__) && !defined(ESP8266)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
+#endif
+
+#if defined(ESP8266)
+  SPI.setFrequency(40000000L);
 #endif
 
     type_code = rd(0x1be + 0x4);
@@ -413,7 +421,9 @@ public:
   void rmove(int distance, int angle);
   int angleto(class xy &other);
   void draw(byte offset = 0);
+  void rotate(int angle);
   int onscreen(void);
+  class xy operator<<=(int d);
   class xy operator+=(class xy &other);
   class xy operator-=(class xy &other);
   long operator*(class xy &other);
@@ -421,11 +431,31 @@ public:
   int nearer_than(int distance, xy &other);
 };
 
+class Bitmap {
+public:
+  xy size, center;
+  uint32_t source;
+  uint16_t format;
+  int8_t handle;
+
+  void fromtext(int font, const char* s);
+  void fromfile(const char *filename);
+
+  void bind(uint8_t handle);
+
+  void draw(int x, int y, int16_t angle = 0);
+
+private:
+  void defaults(uint8_t f);
+  void setup(void);
+};
+
 ////////////////////////////////////////////////////////////////////////
 
 class GDClass {
 public:
   int w, h;
+  uint32_t loadptr;
 
   void begin(uint8_t options = (GD_CALIBRATE | GD_TRIM | GD_STORAGE));
 
@@ -437,7 +467,11 @@ public:
   void polar(int &x, int &y, int16_t r, uint16_t th);
   uint16_t atan2(int16_t y, int16_t x);
 
+#if !defined(ESP8266)
   void copy(const PROGMEM uint8_t *src, int count);
+#else
+  void copy(const uint8_t *src, int count);
+#endif
   void copyram(byte *src, int count);
 
   void self_calibrate(void);
@@ -671,9 +705,15 @@ public:
   }
 
   void fetch512(byte *dst) {
-#if defined(__DUE__) || defined(TEENSYDUINO)
+#if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266)
+
+#if defined(ESP8266)
+    SPI.transferBytes(NULL, dst, 512);
+#else
     for (int i = 0; i < 512; i++)
       *dst++ = SPI.transfer(0xff);
+#endif
+
     SPI.transfer(0xff);   // consume CRC
     SPI.transfer(0xff);
 #else
@@ -795,7 +835,7 @@ typedef struct {
 #define PIXELS(x)  int((x) * 16)
 
 // Convert degrees to Furmans
-#define DEGREES(n) ((65536UL * (n)) / 360)
+#define DEGREES(n) ((65536L * (n)) / 360)
 
 #define NEVER                0
 #define LESS                 1
@@ -1144,5 +1184,14 @@ public:
 
 #endif
 
+/*
+ * PROGMEM declarations are currently not supported by the ESP8266
+ * comppiler. So redefine PROGMEM to nothing.
+ */
+
+#if defined(ESP8266)
+#undef PROGMEM
+#define PROGMEM
 #endif
 
+#endif

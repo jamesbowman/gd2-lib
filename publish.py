@@ -11,7 +11,8 @@ inventory = {
     '3.Peripherals' : "sketch tilt noisy song",
     '4.Utilities'   : "viewer radarchart selftest",
     '5.Demos'       : "cobra jnr kenney sprites widgets",
-    '6.Games'       : "nightstrike chess invaders frogger chip8",
+    '6.Games'       : "nightstrike chess invaders8080 frogger chip8",
+    '7.GD3'         : "movie cube2 wifi",
 }
 
 import zipfile

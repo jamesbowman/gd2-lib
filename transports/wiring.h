@@ -1,5 +1,15 @@
 #ifndef CS
+#if defined(ESP8266)
+#define CS D8
+#else
 #define CS 8
+#endif
+#endif
+
+#if defined(ESP8266)
+#define YIELD() yield()
+#else
+#define YIELD()
 #endif
 
 class GDTransport {
@@ -9,8 +19,8 @@ public:
   void ios() {
     pinMode(CS, OUTPUT);
     digitalWrite(CS, HIGH);
-    pinMode(9, OUTPUT);
-    digitalWrite(9, HIGH);
+    pinMode(SD_PIN, OUTPUT);
+    digitalWrite(SD_PIN, HIGH);
 
     SPI.begin();
     // for (;;) SPI.transfer(0x33);
@@ -22,7 +32,7 @@ public:
 #ifdef TEENSYDUINO
     SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
 #else
-#ifndef __DUE__
+#if !defined(__DUE__) && !defined(ESP8266)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
@@ -86,6 +96,10 @@ public:
     }
     wp += 4;
     freespace -= 4;
+#if defined(ESP8266)
+    // SPI.writeBytes((uint8_t*)&x, 4);
+    SPI.write32(x, 0);
+#else
     union {
       uint32_t c;
       uint8_t b[4];
@@ -95,6 +109,7 @@ public:
     SPI.transfer(b[1]);
     SPI.transfer(b[2]);
     SPI.transfer(b[3]);
+#endif
   }
   void cmdbyte(byte x) {
     if (freespace == 0) {
@@ -126,6 +141,7 @@ public:
   }
 
   void flush() {
+    YIELD();
     getfree(0);
   }
   uint16_t rp() {
@@ -140,7 +156,7 @@ public:
     __end();
     __wr16(REG_CMD_WRITE, wp);
     while (rp() != wp)
-      ;
+      YIELD();
     stream();
   }
 
@@ -208,7 +224,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
-#if defined(ARDUINO) && !defined(__DUE__)
+#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266)
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
@@ -234,8 +250,12 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
+#if defined(ESP8266)
+    SPI.writeBytes(src, n);
+#else
     while (n--)
       SPI.transfer(*src++);
+#endif
     stream();
   }
 #endif
