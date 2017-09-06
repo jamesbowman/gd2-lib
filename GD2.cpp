@@ -199,6 +199,27 @@ void Bitmap::fromfile(const char* filename)
   defaults(RGB565);
 }
 
+static const PROGMEM uint8_t bpltab[] = {
+/* 0  ARGB1555  */ 0,
+/* 1  L1        */ 4,
+/* 2  L4        */ 2,
+/* 3  L8        */ 1,
+/* 4  RGB332    */ 1,
+/* 5  ARGB2     */ 1,
+/* 6  ARGB4     */ 0,
+/* 7  RGB565    */ 0,
+/* 8  PALETTED  */ 1,
+/* 9  TEXT8X8   */ 0,
+/* 10 TEXTVGA   */ 0,
+/* 11 BARGRAPH  */ 1,
+/* 12           */ 0,
+/* 13           */ 0,
+/* 14           */ 0,
+/* 15           */ 0,
+/* 16           */ 0,
+/* 17 L2        */ 3
+};
+
 void Bitmap::defaults(uint8_t f)
 {
   source = GD.loadptr;
@@ -206,13 +227,14 @@ void Bitmap::defaults(uint8_t f)
   handle = -1;
   center.x = size.x / 2;
   center.y = size.y / 2;
-  GD.loadptr += 2UL * size.x * size.y;
+  GD.loadptr += ((size.x << 1) >> pgm_read_byte_near(bpltab + f))  * size.y;
 }
 
 void Bitmap::setup(void)
 {
   GD.BitmapSource(source);
-  GD.BitmapLayout(format, 2 * size.x, size.y);
+  int bpl = (size.x << 1) >> pgm_read_byte_near(bpltab + format);
+  GD.BitmapLayout(format, bpl, size.y);
   GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
 }
 

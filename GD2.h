@@ -858,6 +858,7 @@ typedef struct {
 #define TEXT8X8              9
 #define TEXTVGA              10
 #define BARGRAPH             11
+#define L2                   17
 
 #define NEAREST              0
 #define BILINEAR             1
