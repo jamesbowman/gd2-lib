@@ -651,7 +651,7 @@ private:
 
   uint32_t measure_freq(void);
 
-  uint16_t rseed;
+  uint32_t rseed;
 };
 
 extern GDClass GD;
