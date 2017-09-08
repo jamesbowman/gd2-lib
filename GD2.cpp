@@ -944,7 +944,7 @@ void GDClass::Vertex2ii(uint16_t x, uint16_t y, byte handle, byte cell) {
     uint32_t c;
     uint8_t b[4];
   };
-  b[0] = cell | ((handle & 1) << 7);
+  b[0] = (cell & 127) | ((handle & 1) << 7);
   b[1] = (handle >> 1) | (y << 4);
   b[2] = (y >> 4) | (x << 5);
   b[3] = (2 << 6) | (x >> 3);
@@ -1538,6 +1538,8 @@ void GDClass::dumpscreen(void)
     finish();
 
     wr(REG_SCREENSHOT_EN, 1);
+    if (ft8xx_model)
+      wr(0x0030201c, 32);
     Serial.write(0xa5);
     Serial.write(GD.w & 0xff);
     Serial.write((GD.w >> 8) & 0xff);
