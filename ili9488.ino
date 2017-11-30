@@ -1,12 +1,12 @@
-#include <EEPROM.h> //' A{
+#include <EEPROM.h>
 #include <SPI.h>
 #include <GD2.h>
 
 #define CSX 6   // chip select, active low
-#define DCX 2   // data/command select
-#define SCL 3   // clock, rising edge
-#define SDA 4   // data in to ILI9488
-#define SDO 5   // data out from ILI9488
+#define DCX 5   // data/command select
+#define SCL 13  // clock, rising edge
+#define SDA 11  // data in to ILI9488
+#define SDO 12  // data out from ILI9488
 
 #define ILI9488_CMD_READ_ID1                    0xDA
 #define ILI9488_CMD_READ_ID2                    0xDB
@@ -19,24 +19,66 @@
 
 void setup()
 {
-  Serial.begin(1000000); // JCB
+  Serial.begin(1000000);
 
   pinMode(CSX, OUTPUT);
+  digitalWrite(CSX, HIGH);
+
+  Serial.println("GD init");
+  gd_ili9488_init();
+
+  if (1) {
+    GD.__end();
+    SPI.end();
+
+    pinMode(DCX, OUTPUT);
+    pinMode(SCL, OUTPUT);
+    pinMode(SDA, OUTPUT);
+    pinMode(SDO, INPUT);
+
+    delay(100);
+
+    ili9488_report();
+    ili9488_rgb_mode();
+    ili9488_report();
+    SPI.begin();
+    GD.resume();
+  }
+
+}
+
+unsigned long t;
+
+void loop()
+{
+  GD.ClearColorRGB(0x103000);
+  GD.Clear();
+  GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, "Hello world");
+  GD.cmd_number(GD.w / 2, 3 * GD.h / 4, 31, OPT_CENTER, t++);
+  GD.swap();
+
+  /*
+  uint32_t f0 = GD.rd32(REG_FRAMES);
+  delay(1000);
+  uint32_t f1 = GD.rd32(REG_FRAMES);
+  Serial.println(f1 - f0);
+  GD.finish();
+  GD.__end();
+  SPI.end();
   pinMode(DCX, OUTPUT);
   pinMode(SCL, OUTPUT);
   pinMode(SDA, OUTPUT);
   pinMode(SDO, INPUT);
-
-  digitalWrite(CSX, HIGH);
-  delay(100);
-
   ili9488_report();
-  ili9488_rgb_mode();
-  ili9488_report();
+  SPI.begin();
+  GD.resume();
+  */
+}
 
-  Serial.println("GD init");
-  GD.begin(0);
-
+// Initialize GD for the ILI9488 
+void gd_ili9488_init()
+{
+  GD.begin(~GD_STORAGE);
   Serial.println("Setting video timing for ILI9488");
   GD.wr16(REG_HCYCLE,   400 );
   GD.wr16(REG_HOFFSET,  40  );
@@ -55,14 +97,8 @@ void setup()
   GD.wr16(REG_PCLK,     5   );
   GD.w = 320;
   GD.h = 480;
-}
-
-void loop()
-{
-  GD.ClearColorRGB(0x103000);
-  GD.Clear();
-  GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, "Hello world");
-  GD.swap();
+  Serial.print("ID: ");
+  Serial.println(GD.rd(REG_ID), HEX);
 }
 
 void out_8(uint8_t b)
