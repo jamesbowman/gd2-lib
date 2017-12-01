@@ -21,9 +21,6 @@ public:
     digitalWrite(CS, HIGH);
     pinMode(SD_PIN, OUTPUT);
     digitalWrite(SD_PIN, HIGH);
-
-    SPI.begin();
-    // for (;;) SPI.transfer(0x33);
   }
   void begin0() {
     ios();
