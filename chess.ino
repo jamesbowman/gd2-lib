@@ -54,7 +54,7 @@ long N, T;                  /* N=evaluated positions+S, T=recursion limit */
 short Q,O,K,R,k=16;        /* k=moving side */
 char *p,c[5],Z;   /* p=pointer to c, c=user input, computer output, Z=recursion counter */
 
-char L,
+signed char L,
 w[]={0,2,2,7,-1,8,12,23},                      /* relative piece values    */
 o[]={-16,-15,-17,0,1,16,0,1,16,15,17,0,14,18,31,33,0, /* step-vector lists */
      7,-1,11,6,8,3,6,                          /* 1st dir. in o[] per piece*/

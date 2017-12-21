@@ -136,7 +136,6 @@ static xyz projected[N_VERTICES];
 
 void project(float distance)
 {
-  byte vx;
   const PROGMEM int8_t *pm = COBRA_vertices; 
   const PROGMEM int8_t *pm_e = pm + sizeof(COBRA_vertices);
   xyz *dst = projected;
@@ -174,7 +173,7 @@ void draw_faces()
 {
   memset(visible_edges, 0, sizeof(visible_edges));
 
-  const PROGMEM uint8_t *p = COBRA_faces; 
+  const PROGMEM int8_t *p = COBRA_faces; 
   byte n;
   int c = 1;
   Poly po;
@@ -250,7 +249,7 @@ void draw_edges()
 
   const PROGMEM uint8_t *p = COBRA_edges; 
   byte *pvis = visible_edges;
-  byte vis;
+  byte vis = 0;
 
   for (byte i = 0; i < sizeof(COBRA_edges) / 2; i++) {
     if ((i & 7) == 0)
@@ -354,6 +353,7 @@ trackMotion(int x, int y)
 
 void setup()
 {
+  Serial.begin(115200);
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
@@ -430,7 +430,7 @@ void loop()
 #ifndef DUMPDEV // JCB{
   GD.cmd_number(240, 7, 26, OPT_CENTER, micros() - t0);
 #else
-  // GD.cmd_number(240, 7, 26, OPT_CENTER, t);
+  GD.cmd_number(240, 7, 26, OPT_CENTER, t);
 #endif        // }JCB
 
   GD.swap();
