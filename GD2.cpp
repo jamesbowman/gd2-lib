@@ -187,7 +187,7 @@ void Bitmap::fromtext(int font, const char* s)
   defaults(ARGB4);
 }
 
-void Bitmap::fromfile(const char* filename)
+void Bitmap::fromfile(const char* filename, int format)
 {
   GD.cmd_loadimage(GD.loadptr, OPT_NODL);
   GD.load(filename);
@@ -196,7 +196,7 @@ void Bitmap::fromfile(const char* filename)
   GD.finish();
   size.x = GD.rd16(w);
   size.y = GD.rd16(h);
-  defaults(RGB565);
+  defaults(format);
 }
 
 static const PROGMEM uint8_t bpltab[] = {
@@ -227,7 +227,7 @@ void Bitmap::defaults(uint8_t f)
   handle = -1;
   center.x = size.x / 2;
   center.y = size.y / 2;
-  GD.loadptr += ((size.x << 1) >> pgm_read_byte_near(bpltab + f))  * size.y;
+  GD.loadptr += (long)((size.x << 1) >> pgm_read_byte_near(bpltab + f)) * size.y;
 }
 
 void Bitmap::setup(void)
@@ -246,7 +246,9 @@ void Bitmap::bind(uint8_t h)
   setup();
 }
 
-void Bitmap::draw(int x, int y, int16_t angle)
+#define IS_POWER_2(x) (((x) & ((x) - 1)) == 0)
+
+void Bitmap::wallpaper()
 {
   if (handle == -1) {
     GD.BitmapHandle(15);
@@ -255,17 +257,44 @@ void Bitmap::draw(int x, int y, int16_t angle)
     GD.BitmapHandle(handle);
   }
   GD.Begin(BITMAPS);
+  // if power-of-2, can just use REPEAT,REPEAT
+  // otherwise must draw it across whole screen
+  if (IS_POWER_2(size.x) && IS_POWER_2(size.y)) {
+    GD.BitmapSize(NEAREST, REPEAT, REPEAT, GD.w, GD.h);
+    GD.Vertex2f(0, 0);
+  } else {
+    for (int x = 0; x < GD.w; x += size.x)
+      for (int y = 0; y < GD.h; y += size.y)
+        GD.Vertex2f(x << 4, y << 4);
+  }
+}
 
+void Bitmap::draw(int x, int y, int16_t angle)
+{
   xy pos;
   pos.set(x, y);
+  pos <<= 4;
+  draw(pos, angle);
+}
+
+void Bitmap::draw(const xy &p, int16_t angle)
+{
+  xy pos = p;
+  if (handle == -1) {
+    GD.BitmapHandle(15);
+    setup();
+  } else {
+    GD.BitmapHandle(handle);
+  }
+  GD.Begin(BITMAPS);
 
   if (angle == 0) {
-    pos -= center;
+    xy c4 = center;
+    c4 <<= 4;
+    pos -= c4;
     GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
-    GD.Vertex2f(pos.x << 4, pos.y << 4);
+    GD.Vertex2f(pos.x, pos.y);
   } else {
-    pos <<= 4;
-
     // Compute the screen positions of 4 corners of the bitmap
     xy corners[4] = {
       {0,0              },
@@ -307,6 +336,19 @@ void Bitmap::draw(int x, int y, int16_t angle)
     GD.Vertex2f(topleft.x, topleft.y);
     GD.RestoreContext();
   }
+}
+
+class Bitmap __fromatlas(uint32_t a)
+{
+  Bitmap r;
+  r.size.x    = GD.rd16(a);
+  r.size.y    = GD.rd16(a + 2);
+  r.center.x  = GD.rd16(a + 4);
+  r.center.y  = GD.rd16(a + 6);
+  r.source    = GD.rd32(a + 8);
+  r.format    = GD.rd(a + 12);
+  r.handle    = -1;
+  return r;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -625,6 +667,10 @@ uint16_t GDClass::random(uint16_t n) {
   if (n == (n & -n))
     return p & (n - 1);
   return (uint32_t(p) * n) >> 16;
+}
+
+uint16_t GDClass::random(uint16_t n0, uint16_t n1) {
+  return n0 + random(n1 - n0);
 }
 
 // >>> [int(65535*math.sin(math.pi * 2 * i / 1024)) for i in range(257)]
@@ -1314,6 +1360,10 @@ void GDClass::cmd_setrotate(uint32_t r) {
 }
 void GDClass::cmd_videostart() {
   cFFFFFF(0x40);
+}
+
+void GDClass::cmd_sync() {
+  cFFFFFF(0x42);
 }
 
 byte GDClass::rd(uint32_t addr) {

@@ -435,20 +435,24 @@ class Bitmap {
 public:
   xy size, center;
   uint32_t source;
-  uint16_t format;
+  uint8_t format;
   int8_t handle;
 
   void fromtext(int font, const char* s);
-  void fromfile(const char *filename);
+  void fromfile(const char *filename, int format = 7);
 
   void bind(uint8_t handle);
 
+  void wallpaper();
   void draw(int x, int y, int16_t angle = 0);
+  void draw(const xy &pos, int16_t angle = 0);
 
 private:
   void defaults(uint8_t f);
   void setup(void);
 };
+
+class Bitmap __fromatlas(uint32_t addr);
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -461,6 +465,7 @@ public:
 
   uint16_t random();
   uint16_t random(uint16_t n);
+  uint16_t random(uint16_t n0, uint16_t n1);
   void seed(uint16_t n);
   int16_t rsin(int16_t r, uint16_t th);
   int16_t rcos(int16_t r, uint16_t th);
@@ -610,6 +615,7 @@ public:
   void cmd_setrotate(uint32_t r);
   void cmd_videostart();
   void cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t h);
+  void cmd_sync();
 
   byte rd(uint32_t addr);
   void wr(uint32_t addr, uint8_t v);
@@ -705,21 +711,22 @@ public:
   }
 
   void fetch512(byte *dst) {
-#if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266)
+#if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266) || 1
 
 #if defined(ESP8266)
     SPI.transferBytes(NULL, dst, 512);
 #else
-    for (int i = 0; i < 512; i++)
-      *dst++ = SPI.transfer(0xff);
+    // for (int i = 0; i < 512; i++) *dst++ = SPI.transfer(0xff);
+    memset(dst, 0xff, 512); SPI.transfer(dst, 512);
 #endif
 
     SPI.transfer(0xff);   // consume CRC
     SPI.transfer(0xff);
 #else
     SPDR = 0xff;
-    while (!(SPSR & _BV(SPIF))) ;
+    asm volatile("nop"); while (!(SPSR & _BV(SPIF))) ;
     for (int i = 0; i < 512; i++) {
+      while (!(SPSR & _BV(SPIF))) ;
       asm volatile("nop");
       asm volatile("nop");
       asm volatile("nop");
@@ -731,10 +738,11 @@ public:
       asm volatile("nop");
       asm volatile("nop");
       asm volatile("nop");
+
       *dst++ = SPDR;
       SPDR = 0xff;
     }
-    while (!(SPSR & _BV(SPIF))) ;
+    asm volatile("nop"); while (!(SPSR & _BV(SPIF))) ;
     SPI.transfer(0xff);
 #endif
     GD.SD.desel();
@@ -751,7 +759,6 @@ public:
     fetch512(dst);
     int i = off & 511;
     cluster = *(uint32_t*)&dst[i];
-    uint32_t c = cluster;
     nseq = 0;
     for (uint32_t c = cluster;
          (i < 512) && *(uint32_t*)&dst[i] == c; 
@@ -806,8 +813,11 @@ public:
       sector = 0;
       nextcluster2(dst);
     }
+    REPORT(cluster);
     uint32_t off = GD.SD.o_data + ((long)GD.SD.cluster_size * cluster) + (512L * sector);
+    REPORT(off);
     GD.SD.cmd17(off & ~511L);
+    REPORT(off);
     sector++;
     offset += 512;
     fetch512(dst);
@@ -1184,6 +1194,93 @@ public:
 };
 
 #endif
+
+////////////////////////////////////////////////////////////////////////
+//  TileMap: maps made with the "tiled" map editor
+////////////////////////////////////////////////////////////////////////
+
+class TileMap {
+  uint32_t chunkstart;
+  int chunkw, chunkh;
+  int stride;
+  int bpc;
+  byte layers;
+
+public:
+  uint16_t w, h;
+  void begin(uint32_t loadpoint) {
+    GD.finish();
+    w      = GD.rd16(loadpoint +  0);
+    h      = GD.rd16(loadpoint +  2);
+    chunkw = GD.rd16(loadpoint +  4);
+    chunkh = GD.rd16(loadpoint +  6);
+    stride = GD.rd16(loadpoint +  8);
+    layers = GD.rd16(loadpoint + 10);
+    bpc = (4 * 16);
+    chunkstart = loadpoint + 12;
+  }
+  void draw(uint16_t x, uint16_t y, uint16_t layermask = ~0) {
+    int16_t chunk_x = (x / chunkw);
+    int16_t ox0 = -(x % chunkw);
+    int16_t chunk_y = (y / chunkh);
+    int16_t oy = -(y % chunkh);
+
+    GD.Begin(BITMAPS);
+    GD.SaveContext();
+    GD.BlendFunc(ONE, ONE_MINUS_SRC_ALPHA);
+    while (oy < GD.h) {
+      int16_t ox = ox0;
+      GD.VertexTranslateY(oy << 4);
+      uint32_t pos = chunkstart + (chunk_x + long(stride) * chunk_y) * layers * bpc;
+      while (ox < GD.w) {
+        GD.VertexTranslateX(ox << 4);
+        for (byte layer = 0; layer < layers; layer++)
+          if (layermask & (1 << layer))
+            GD.cmd_append(pos + bpc * layer, bpc);
+        pos += (layers * bpc);
+        ox += chunkw;
+      }
+      oy += chunkh;
+      chunk_y++;
+    }
+    GD.RestoreContext();
+  }
+  void draw(xy pos) {
+    draw(pos.x >> 4, pos.y >> 4);
+  }
+  uint32_t addr(uint16_t x, uint16_t y, byte layer) {
+    int16_t tx = (x / (chunkw >> 2));
+    int16_t ty = (y / (chunkh >> 2));
+    return
+      chunkstart +
+      ((tx >> 2) + long(stride) * (ty >> 2)) * layers * bpc +
+      (tx & 3) * 4 +
+      (ty & 3) * 16 +
+      layer * 64;
+  }
+  int read(uint16_t x, uint16_t y, byte layer) {
+    uint32_t op = GD.rd32(addr(x, y, layer));
+    if ((op >> 24) == 0x2d)
+      return 0;
+    else
+      return 1 + (op & 2047);
+  }
+  void write(uint16_t x, uint16_t y, byte layer, int tile) {
+    uint32_t op;
+    uint32_t a = addr(x, y, layer);
+    if (tile == 0)
+      op = 0x2d000000UL;
+    else
+      op = (GD.rd32(a) & ~2047) | ((tile - 1) & 2047);
+    GD.wr32(a, op);
+  }
+  int read(xy pos, byte layer) {
+    return read(pos.x >> 4, pos.y >> 4, layer);
+  }
+  void write(xy pos, byte layer, int tile) {
+    write(pos.x >> 4, pos.y >> 4, layer, tile);
+  }
+};
 
 /*
  * PROGMEM declarations are currently not supported by the ESP8266
