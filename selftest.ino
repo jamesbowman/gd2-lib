@@ -2,7 +2,9 @@
 #include <SPI.h>
 #include <GD2.h>
 
-#define UART_SPEED 9600
+#define GD3 ft8xx_model
+
+#define UART_SPEED 115200
 
 #include "selftest_assets.h"
 
@@ -32,7 +34,6 @@ void setup()
 {
   Serial.begin(UART_SPEED);
   Serial.println("---- GAMEDUINO 2 SELFTEST ----");
-  GD.begin(0);
 }
 
 static void ramp(int y, uint32_t color)
@@ -46,8 +47,11 @@ void testcard(int pass, const char *message)
 {
   // GD.ClearColorRGB(0x204060);
 
+  GD.get_inputs();
   GD.Clear();
-  GD.cmd_text(240, 12, 28, OPT_CENTER, "Gameduino2 Self test");
+  GD.cmd_text(240, 12, 28, OPT_CENTER,
+    GD3 ? "Gameduino3 Self test" :
+          "Gameduino2 Self test");
 
   int y;
 
@@ -81,8 +85,17 @@ void testcard(int pass, const char *message)
     GD.ColorRGB(pass ? 0x40ff40 : 0xff4040);
   GD.cmd_text(120, 180, 31, OPT_CENTERY, message);
 
-  GD.swap();
+  GD.ColorRGB(0xffffff);
+  GD.Begin(LINES);
 
+  GD.Vertex2f(PIXELS(GD.inputs.x), PIXELS(0));
+  GD.Vertex2f(PIXELS(GD.inputs.x), PIXELS(GD.h));
+
+  GD.Vertex2f(PIXELS(0),    PIXELS(GD.inputs.y));
+  GD.Vertex2f(PIXELS(GD.w), PIXELS(GD.inputs.y));
+
+  GD.swap();
+  GD.finish();
 }
 
 #define SCREENTEST(NAME) \
@@ -118,7 +131,8 @@ int test_clock()
 
   float measured = float(t2 - t1);
   // measured should be 48e6, within 2%
-  float expected = 48e6 / SPEEDUP;
+
+  float expected = (GD3 ? 60e6 : 48e6) / SPEEDUP;
   Serial.println(measured, DEC);
   Serial.println(expected, DEC);
   float diff = measured - expected;
@@ -264,15 +278,17 @@ static void play_wait(uint16_t n)
 
 static byte test_touch(void)
 {
-  GD.Clear();
-  GD.cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
-  GD.self_calibrate();
-  // write the new calibration back to EEPROM
+  if (!GD3) {
+    GD.Clear();
+    GD.cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
+    GD.self_calibrate();
+    // write the new calibration back to EEPROM
 
 #if !defined(RASPBERRY_PI) && !defined(__DUE__)
-  for (int i = 0; i < 24; i++)
-    EEPROM.write(1 + i, GD.rd(REG_TOUCH_TRANSFORM_A + i));
+    for (int i = 0; i < 24; i++)
+      EEPROM.write(1 + i, GD.rd(REG_TOUCH_TRANSFORM_A + i));
 #endif
+  }
 
   byte hit = 0;
   while (hit != 0x0f) {
@@ -423,8 +439,209 @@ static struct {
   { 255, 255 }
 };
 
+static const uint8_t GD3_43__init[128] = {
+255, 255, 1, 1, 26, 255, 255, 255, 12, 32, 48, 0, 4, 0, 0, 0, 0, 135,
+147, 3, 26, 255, 255, 255, 80, 33, 48, 0, 24, 0, 0, 0, 46, 46, 46, 46,
+46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46,
+46, 46, 46, 34, 255, 255, 255, 88, 32, 48, 0, 120, 156, 99, 100, 96,
+96, 216, 198, 200, 192, 0, 68, 12, 204, 12, 16, 26, 132, 217, 128, 24,
+0, 17, 207, 0, 197, 0, 0, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255,
+255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0,
+255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255
+};
+static const uint8_t GD3_7__init[128] = {
+255, 255, 1, 1, 26, 255, 255, 255, 12, 32, 48, 0, 4, 0, 0, 0, 0, 39,
+134, 3, 26, 255, 255, 255, 80, 33, 48, 0, 24, 0, 0, 0, 46, 46, 46, 46,
+46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46,
+46, 46, 46, 34, 255, 255, 255, 44, 32, 48, 0, 120, 156, 59, 201, 204,
+192, 16, 193, 192, 192, 160, 0, 164, 65, 192, 0, 136, 89, 152, 128,
+124, 32, 253, 128, 17, 34, 6, 149, 98, 0, 113, 183, 49, 66, 104, 100,
+49, 160, 114, 6, 0, 164, 38, 3, 65, 0, 0, 0, 0, 255, 255, 255, 0, 255,
+255, 255, 0, 255, 255, 255, 0, 255, 255, 255
+};
+static const uint8_t GD3_VGA__init[128] = {
+255, 255, 1, 2, 26, 255, 255, 255, 12, 32, 48, 0, 4, 0, 0, 0, 64, 210,
+223, 3, 26, 255, 255, 255, 148, 32, 48, 0, 4, 0, 0, 0, 16, 0, 0, 0,
+34, 255, 255, 255, 44, 32, 48, 0, 120, 156, 115, 96, 101, 96, 208, 96,
+100, 96, 96, 96, 97, 0, 131, 14, 32, 86, 99, 102, 96, 80, 6, 113, 152,
+33, 98, 108, 12, 248, 1, 72, 59, 0, 77, 136, 1, 81, 0, 0, 0, 255, 255,
+255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255,
+255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0,
+255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255
+};
+#define FREQUENCY_OFFSET 16
+#define CALIBRATION_OFFSET 32
+
+uint8_t gpio, gpio_dir;
+
+void set_SDA(byte n)
+{
+  GD.wr(REG_GPIO_DIR, gpio_dir | (0x03 - n));    // Drive SCL, SDA low
+}
+
+void set_SCL(byte n)
+{
+  GD.wr(REG_GPIO, gpio | (n << 1));
+}
+
+int get_SDA(void)
+{
+  return GD.rd(REG_GPIO) & 1;
+}
+
+void i2c_start(void) 
+{
+  set_SDA(1);
+  set_SCL(1);
+  set_SDA(0);
+  set_SCL(0);
+}
+
+void i2c_stop(void) 
+{
+  set_SDA(0);
+  set_SCL(1);
+  set_SDA(1);
+  set_SCL(1);
+}
+
+int i2c_rx1()
+{
+  set_SDA(1);
+  set_SCL(1);
+  byte r = get_SDA();
+  set_SCL(0);
+  return r;
+}
+
+void i2c_tx1(byte b)
+{
+  set_SDA(b);
+  set_SCL(1);
+  set_SCL(0);
+}
+
+int i2c_tx(byte x)
+{
+  for (int i = 7; i >= 0; i--)
+    i2c_tx1(1 & (x >> i));
+  return i2c_rx1();
+}
+
+int i2c_rx(int nak)
+{
+  byte r = 0;
+  for (byte i = 0; i < 8; i++)
+    r = (r << 1) | i2c_rx1();
+  i2c_tx1(nak);
+  return r;
+}
+
+void i2c_begin(void)
+{
+  gpio = GD.rd(REG_GPIO) & ~3;
+  gpio_dir = GD.rd(REG_GPIO_DIR) & ~3;
+
+  // 2-wire software reset
+  i2c_start();
+  i2c_rx(1);
+  i2c_start();
+  i2c_stop();
+}
+
+#define ADDR  0xa0
+
+void ram_write(const uint8_t *v)
+{
+  for (byte i = 0; i < 128; i += 8) {
+    i2c_start();
+    i2c_tx(ADDR);
+    i2c_tx(i);
+    for (byte j = 0; j < 8; j++)
+      i2c_tx(*v++);
+    i2c_stop();
+    delay(6);
+  }
+}
+
+byte ram_read(byte a)
+{
+  i2c_start();
+  i2c_tx(ADDR);
+  i2c_tx(a);
+
+  i2c_start();
+  i2c_tx(ADDR | 1);
+  byte r = i2c_rx(1);
+  i2c_stop();
+  return r;
+}
+
+void ramdump(void)
+{
+  for (int i = 0; i < 128; i++) {
+    byte v = ram_read(i);
+    Serial.print(i, HEX);
+    Serial.print(" ");
+    Serial.println(v, HEX);
+  }
+}
+
+void ram_get(byte *v)
+{
+  i2c_start();
+  i2c_tx(ADDR);
+  i2c_tx(0);
+
+  i2c_start();
+  i2c_tx(ADDR | 1);
+  for (int i = 0; i < 128; i++) {
+    *v++ = i2c_rx(i == 127);
+    // Serial.println(v[-1], DEC);
+  }
+  i2c_stop();
+}
+
+static void load_flash()
+{
+  GD.begin(0);
+
+  if (GD3) {
+    uint8_t stage[128];
+    memcpy(stage, GD3_43__init, 128);
+
+    i2c_begin();
+
+    GD.Clear();
+    GD.cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
+    GD.self_calibrate();
+    GD.finish();
+
+    for (int i = 0; i < 24; i++)
+      stage[CALIBRATION_OFFSET + i] = GD.rd(REG_TOUCH_TRANSFORM_A + i);
+
+    ram_write(stage);
+    byte b[128];
+    ram_get(b);
+    Serial.print("compare ");
+    int diff = memcmp(stage, b, 128);
+    if (diff != 0) {
+      GD.Clear();
+      GD.cmd_text(240, 100, 30, OPT_CENTERX, "FLASH fault");
+      GD.swap();
+      for (;;);
+    }
+    Serial.println(diff);
+  }
+}
+
 void loop()
 {
+  if (EEPROM.read(0) == 0x7c)
+    EEPROM.write(0, 0xff);
+  load_flash();
+  GD.begin(0);
+
   x = y = 0;
   testcard(1, "Starting tests");
   GD.finish();
@@ -435,27 +652,26 @@ void loop()
 
   {
     SCREENTEST(ident);
-    SCREENTEST(tune);
+    if (!GD3)
+      SCREENTEST(tune);
     SCREENTEST(clock);
     SCREENTEST(RAM);
     SCREENTEST(PWM);
-    if (1) {
-      SCREENTEST(storage);
-      SCREENTEST(SDcard);
-    }
-    // SCREENTEST(accel);
+    SCREENTEST(storage);
+    SCREENTEST(SDcard);
+    if (0)
+      SCREENTEST(accel);
     if (1) {
       SCREENTEST(touch);
       SCREENTEST(audio);
     }
-    testcard(1, "* ALL PASS *");
     {
-      byte i = 0, t = 0;
+      int i = 0, t = 0;
       for (;;) {
-        if (t == pacman[i].t)
+        testcard(1, "* ALL PASS *");
+        if (t == 4 * pacman[i].t)
           GD.play(HARP, pacman[i++].note - 12);
-        delay(65);
-        if (++t == 64) {
+        if (++t == 256) {
           t = 0;
           i = 0;
         }
