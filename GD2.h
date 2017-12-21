@@ -1282,9 +1282,70 @@ public:
   }
 };
 
+class MoviePlayer
+{
+  uint32_t mf_size, mf_base, wp;
+  Reader r;
+  void loadsector() {
+    byte buf[512];
+    GD.__end();
+    r.readsector(buf);
+    GD.resume();
+    GD.wr_n(mf_base + wp, buf, 512);
+    wp = (wp + 512) & (mf_size - 1);
+  }
+
+public:
+  int begin(const char *filename) {
+    mf_size = 0x40000UL;
+    mf_base = 0x100000UL - mf_size;
+    GD.__end();
+    if (!r.openfile(filename)) {
+      Serial.println("Open failed");
+      return 0;
+    }
+    GD.resume();
+
+    wp = 0;
+    while (wp < (mf_size - 512)) {
+      loadsector();
+    }
+
+    GD.cmd_mediafifo(mf_base, mf_size);
+    GD.cmd_regwrite(REG_MEDIAFIFO_WRITE, wp);
+    GD.finish();
+
+    return 1;
+  }
+  int service() {
+    if (r.eof()) {
+      return 0;
+    } else {
+      byte buf[512];
+
+      uint32_t fullness = (wp - GD.rd32(REG_MEDIAFIFO_READ)) & (mf_size - 1);
+      Serial.println(fullness);
+      while (fullness < (mf_size - 512)) {
+        loadsector();
+        fullness += 512;
+        GD.wr32(REG_MEDIAFIFO_WRITE, wp);
+      }
+      return 1;
+    }
+  }
+  void play() {
+    GD.cmd_playvideo(OPT_MEDIAFIFO | OPT_FULLSCREEN);
+    GD.flush();
+    while (service())
+      ;
+    GD.cmd_memcpy(0, 0, 4);
+    GD.finish();
+  }
+};
+
 /*
  * PROGMEM declarations are currently not supported by the ESP8266
- * comppiler. So redefine PROGMEM to nothing.
+ * compiler. So redefine PROGMEM to nothing.
  */
 
 #if defined(ESP8266)
