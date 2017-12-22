@@ -184,9 +184,9 @@ static void quad(int x1, int y1,
 
   // Set the new bitmap transform
   GD.cmd32(0xffffff21UL); // bitmap transform
-  GD.cmd32(x1); GD.cmd32(y1);
-  GD.cmd32(x2); GD.cmd32(y2);
-  GD.cmd32(x3); GD.cmd32(y3);
+  GD.cmd32(x1 - minx); GD.cmd32(y1 - miny);
+  GD.cmd32(x2 - minx); GD.cmd32(y2 - miny);
+  GD.cmd32(x3 - minx); GD.cmd32(y3 - miny);
 
   GD.cmd32(bx1); GD.cmd32(by1);
   GD.cmd32(bx1); GD.cmd32(by3);
@@ -194,7 +194,7 @@ static void quad(int x1, int y1,
   GD.cmd32(0);
 
   // Draw the quad
-  GD.Vertex2f(0, 0);
+  GD.Vertex2f(PIXELS(minx), PIXELS(miny));
 }
 
 void draw_faces(int dir)
@@ -359,7 +359,7 @@ GD.finish();
 f0 = millis();
     return 1;
   }
-  int play() {
+  int service() {
     if (r.eof()) {
       return 0;
     } else {
@@ -410,7 +410,6 @@ void setup()
   GD.BitmapHandle(FACE_BACK);
   GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
   GD.BitmapSource(GD.loadptr);
-  Serial.println(__LINE__);
 
   startMotion(240, 136);
   trackMotion(247, 138);
@@ -421,29 +420,10 @@ byte prev_touching;
 void loop()
 {
   unsigned long t0 = micros();
-  mp.play();
+  mp.service();
   unsigned long took = micros() - t0;
-#if 1
   GD.get_inputs();
-  Serial.print("INPUTS ");
-  byte *bi = (byte*)&GD.inputs;
-  for (size_t i = 0; i < sizeof(GD.inputs); i++) {
-    Serial.print(bi[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
-#else
-  byte *bi = (byte*)&GD.inputs;
-  Serial.write(0xa7);
-  for (size_t i = 0; i < sizeof(GD.inputs); i++) {
-    int s;
-    do {
-      s = Serial.read();
-    } while (s == -1);
-    bi[i] = s;
-  }
-#endif
-  GD.cmd_videoframe(GD.loadptr, 0xefffcUL);
+  GD.cmd_videoframe(GD.loadptr + 4, GD.loadptr);
 
   GD.Clear();
   GD.ColorRGB(48, 48, 90);

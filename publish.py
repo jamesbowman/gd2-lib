@@ -12,7 +12,7 @@ inventory = {
     '4.Utilities'   : "viewer radarchart selftest",
     '5.Demos'       : "cobra jnr kenney sprites widgets",
     '6.Games'       : "nightstrike chess frogger",
-    '7.GD3'         : "movie cube2",
+    '7.GD3'         : "video1 video2 cube cube2",
 }
 
 import zipfile

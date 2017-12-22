@@ -183,9 +183,9 @@ static void quad(int x1, int y1,
 
   // Set the new bitmap transform
   GD.cmd32(0xffffff21UL); // bitmap transform
-  GD.cmd32(x1); GD.cmd32(y1);
-  GD.cmd32(x2); GD.cmd32(y2);
-  GD.cmd32(x3); GD.cmd32(y3);
+  GD.cmd32(x1 - minx); GD.cmd32(y1 - miny);
+  GD.cmd32(x2 - minx); GD.cmd32(y2 - miny);
+  GD.cmd32(x3 - minx); GD.cmd32(y3 - miny);
 
   GD.cmd32(bx1); GD.cmd32(by1);
   GD.cmd32(bx1); GD.cmd32(by3);
@@ -193,7 +193,7 @@ static void quad(int x1, int y1,
   GD.cmd32(0);
 
   // Draw the quad
-  GD.Vertex2f(0, 0);
+  GD.Vertex2f(PIXELS(minx), PIXELS(miny));
 }
 
 void draw_faces(int dir)
@@ -306,50 +306,41 @@ trackMotion(int x, int y)
 
 /*****************************************************************/
 
+Bitmap background, foreground;
+
 void setup()
 {
-  Serial.begin(1000000);
+  Serial.begin(1000000); // JCB
   GD.begin();
-  GD.cmd_loadimage(0, 0);
-  GD.load("healsky3.jpg");
+
+  background.fromfile("tree.jpg");
+  foreground.fromfile("healsky3.jpg");
+
+  foreground.bind(PICTURE_HANDLE);
   GD.BitmapHandle(PICTURE_HANDLE);
   GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
+
   startMotion(240, 136);
   trackMotion(247, 138);
-
-  GD.cmd_memwrite(0xf0000U, 4 * (4 + 100));
-  GD.Begin(POINTS);
-  GD.ColorA(20);
-  GD.ColorRGB(0x8B2500UL);
-  GD.BlendFunc(SRC_ALPHA, ONE);
-  for (int i = 0; i < 100; i++) {
-    GD.Vertex2f(GD.random(16 * GD.w), GD.random(16 * GD.h));
-  }
-
-  Serial.print("HSIZE: ");
-  Serial.println(GD.w, DEC);
 }
 
-static byte prev_touching;
-static uint16_t t;
+byte prev_touching;
 
 void loop()
 {
-  GD.Clear();
-  GD.PointSize(16 * 80 + GD.rsin(16 * 20, t << 7));
-  GD.cmd_append(0xf0000U, 4 * (4 + 100));
-
-  GD.RestoreContext();
-
   GD.get_inputs();
-  unsigned long t0 = micros();
 
-  byte touching = (GD.inputs.x != -32768);
-  if (!prev_touching && touching)
+  GD.Clear();
+  GD.SaveContext();         // {
+  GD.ColorRGB(0x605040);
+  background.wallpaper();
+  GD.RestoreContext();      // }
+
+  if (!prev_touching && GD.inputs.touching)
     startMotion(GD.inputs.x, GD.inputs.y);
-  else if (touching)
+  else if (GD.inputs.touching)
     trackMotion(GD.inputs.x, GD.inputs.y);
-  prev_touching = touching;
+  prev_touching = GD.inputs.touching;
 
   if (angle != 0.0f)
     rotation(angle, axis);
@@ -360,6 +351,5 @@ void loop()
   GD.RestoreContext();
 
   GD.swap();
-
-  t++;
+  GD.dumpscreen();
 }
