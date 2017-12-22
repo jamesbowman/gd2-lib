@@ -1301,7 +1301,7 @@ public:
     mf_base = 0x100000UL - mf_size;
     GD.__end();
     if (!r.openfile(filename)) {
-      Serial.println("Open failed");
+      // Serial.println("Open failed");
       return 0;
     }
     GD.resume();
@@ -1324,7 +1324,6 @@ public:
       byte buf[512];
 
       uint32_t fullness = (wp - GD.rd32(REG_MEDIAFIFO_READ)) & (mf_size - 1);
-      Serial.println(fullness);
       while (fullness < (mf_size - 512)) {
         loadsector();
         fullness += 512;
@@ -1340,6 +1339,42 @@ public:
       ;
     GD.cmd_memcpy(0, 0, 4);
     GD.finish();
+  }
+};
+
+class Dirsearch {
+  struct dirent de;
+  int index;
+  
+public:
+  char name[13];
+  void begin() {
+    index = 0;
+  }
+  int get(const char *ext) {
+    byte i;
+
+    GD.__end();
+    char e3[3];
+
+    do {
+      GD.SD.rdn((byte*)&de, GD.SD.o_root + index++ * 32, sizeof(de));
+      for (i = 0; i < 3; i++)
+        e3[i] = tolower(de.ext[i]);
+    } while (de.name[0] &&
+             ((de.name[0] & 0x80) || (memcmp(ext, e3, 3) != 0)));
+
+    GD.resume();
+
+    char *pc = name;
+    for (i = 0; i < 8 && de.name[i] != ' '; i++)
+      *pc++ = tolower(de.name[i]);
+    *pc++ = '.';
+    for (i = 0; i < 3 && de.ext[i] != ' '; i++)
+      *pc++ = tolower(de.ext[i]);
+    *pc++ = 0;
+
+    return de.name[0];
   }
 };
 
