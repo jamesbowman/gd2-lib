@@ -73,7 +73,6 @@ static const PROGMEM uint8_t __assets[927] = {
 
 void setup()
 {
-  Serial.begin(1000000); // JCB
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(PYTHAG_HANDLE);
