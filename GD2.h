@@ -82,6 +82,14 @@ static class ASPI_t ASPI;
 
 #endif
 
+#if defined(ARDUINO_STM32L4_BLACKICE)
+// BlackIce Board uses SPI1 on the Arduino header.
+#define SPI SPI1
+// Board Support:
+//   JSON: http://www.hamnavoe.com/package_millerresearch_mystorm_index.json
+//   Source: https://github.com/millerresearch/arduino-mystorm
+#endif
+
 #if SDCARD
 
 #if defined(VERBOSE) && (VERBOSE > 0)
@@ -204,7 +212,7 @@ class sdcard {
     pin = p;
 
     pinMode(pin, OUTPUT);
-#if !defined(__DUE__) && !defined(TEENSYDUINO)
+#if !defined(__DUE__) && !defined(TEENSYDUINO) && !defined(ARDUINO_ARCH_STM32L4)
     SPI.setClockDivider(SPI_CLOCK_DIV64);
 #endif
     desel();
@@ -280,7 +288,7 @@ class sdcard {
     for (;;);
 #endif
 
-#if !defined(__DUE__) && !defined(ESP8266)
+#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
@@ -1384,7 +1392,7 @@ public:
  * compiler. So redefine PROGMEM to nothing.
  */
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ARDUINO_ARCH_STM32L4)
 #undef PROGMEM
 #define PROGMEM
 #endif

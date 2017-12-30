@@ -26,7 +26,7 @@ public:
     ios();
 
     SPI.begin();
-#ifdef TEENSYDUINO
+#if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4)
     SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
 #else
 #if !defined(__DUE__) && !defined(ESP8266)
@@ -226,7 +226,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
-#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266)
+#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4)
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
