@@ -35,11 +35,16 @@ public:
 #endif
 #endif
 
-    hostcmd(0x00);
+    hostcmd(0x42);    // SLEEP
+    hostcmd(0x61);    // CLKSEL default
+    hostcmd(0x00);    // ACTIVE
 #if (BOARD != BOARD_GAMEDUINO23)
- hostcmd(0x44); // from external crystal
+    hostcmd(0x44);    // CLKEXT
+#else
+    hostcmd(0x48);    // CLKINT
 #endif
-    hostcmd(0x68);
+    hostcmd(0x49);    // PD_ROMS all up
+    hostcmd(0x68);    // RST_PULSE
   }
   void begin1() {
 #if 0
