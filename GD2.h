@@ -931,6 +931,7 @@ typedef struct {
 #define OPT_NOHANDS          49152
 #define OPT_RIGHTX           2048
 #define OPT_SIGNED           256
+#define OPT_SOUND            32
 
 #define OPT_NOTEAR           4
 #define OPT_FULLSCREEN       8
