@@ -8,7 +8,7 @@ Gameduino 2 library sources. To build the Arduino release ``Gameduino2.zip`` run
 FAQ
 ---
 
-**How do I use this with an 800x480 display?**
+**How do I use GD with an 800x480 display?**
 
 After calling ``GD.begin()`` you can set the scanout registers for 800x480 like this:
 
@@ -26,3 +26,7 @@ After calling ``GD.begin()`` you can set the scanout registers for 800x480 like 
     GD.wr16(vc.REG_DITHER, 1);
     GD.wr16(vc.REG_PCLK_POL, 0);
     GD.wr16(vc.REG_PCLK, 4);
+
+**How do I use GD with an 320x480 display?**
+
+There is a writeup here: http://excamera.com/sphinx/article-ili9488.html
