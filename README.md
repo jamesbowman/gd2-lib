@@ -30,3 +30,9 @@ After calling ``GD.begin()`` you can set the scanout registers for 800x480 like 
 **How do I use GD with an 320x480 display?**
 
 There is a writeup here: http://excamera.com/sphinx/article-ili9488.html
+
+**How do I change the select pin assignments?**
+
+For the GPU select, modify ``#define CS`` at the start of ``transports/wiring.h``
+
+For the microSD select, modify ``#define SD_PIN`` at the start of ``GD2.cpp``
