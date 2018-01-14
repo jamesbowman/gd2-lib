@@ -168,6 +168,7 @@ void Bitmap::fromtext(int font, const char* s)
 
   GD.finish();
   GD.wr(REG_PCLK, 0);
+  delay(1);
   GD.wr16(REG_HSIZE, size.x);
   GD.wr16(REG_VSIZE, size.y);
 
@@ -1567,7 +1568,7 @@ void GDClass::safeload(const char *filename)
 
 void GDClass::textsize(int &w, int &h, int font, const char *s)
 {
-  uint32_t font_addr = rd32(FONT_ROOT) + 148 * (font - 16);
+  uint32_t font_addr = rd32(0x309074 + 4 * font);
   w = 0;
   while (*s)
     w += GD.rd(font_addr + *s++);
