@@ -76,6 +76,12 @@ public:
     }
     return r;
   }
+  void transfer(byte*m, int s) {
+    while (s--) {
+      *m = transfer(*m);
+      m++;
+    }
+  }
 };
 static class ASPI_t ASPI;
 #define SPI ASPI
