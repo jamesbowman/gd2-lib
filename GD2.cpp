@@ -178,6 +178,7 @@ void Bitmap::fromtext(int font, const char* s)
   GD.cmd_text(0, 0, font, 0, s);
 
   GD.swap();
+  GD.loadptr = (GD.loadptr + 1) & ~1;
   GD.cmd_snapshot(GD.loadptr);
   GD.finish();
 
@@ -190,6 +191,7 @@ void Bitmap::fromtext(int font, const char* s)
 
 void Bitmap::fromfile(const char* filename, int format)
 {
+  GD.loadptr = (GD.loadptr + 1) & ~1;
   GD.cmd_loadimage(GD.loadptr, OPT_NODL);
   GD.load(filename);
   uint32_t ptr, w, h;
