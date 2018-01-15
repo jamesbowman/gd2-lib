@@ -6,18 +6,93 @@
 # Datatypes (KEYWORD1)
 #######################################
 
+GD	KEYWORD1	GD
+
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
+AlphaFunc	KEYWORD2
+Begin	KEYWORD2
+BitmapHandle	KEYWORD2
+BitmapLayout	KEYWORD2
+BitmapSize	KEYWORD2
+BitmapSource	KEYWORD2
+BlendFunc	KEYWORD2
+Cell	KEYWORD2
+Clear	KEYWORD2
+ClearColorA	KEYWORD2
+ClearColorRGB	KEYWORD2
+ClearStencil	KEYWORD2
+ClearTag	KEYWORD2
+ColorA	KEYWORD2
+ColorMask	KEYWORD2
+ColorRGB	KEYWORD2
+LineWidth	KEYWORD2
+PointSize	KEYWORD2
+RestoreContext	KEYWORD2
+SaveContext	KEYWORD2
+ScissorSize	KEYWORD2
+ScissorXY	KEYWORD2
+StencilFunc	KEYWORD2
+StencilMask	KEYWORD2
+StencilOp	KEYWORD2
+TagMask	KEYWORD2
+Tag	KEYWORD2
+Vertex2f	KEYWORD2
+Vertex2ii	KEYWORD2
+
+cmd_append	KEYWORD2
+cmd_bgcolor	KEYWORD2
+cmd_button	KEYWORD2
+cmd_calibrate	KEYWORD2
+cmd_clock	KEYWORD2
+cmd_coldstart	KEYWORD2
+cmd_dial	KEYWORD2
+cmd_fgcolor	KEYWORD2
+cmd_gauge	KEYWORD2
+cmd_getprops	KEYWORD2
+cmd_gradient	KEYWORD2
+cmd_inflate	KEYWORD2
+cmd_keys	KEYWORD2
+cmd_loadidentity	KEYWORD2
+cmd_loadimage	KEYWORD2
+cmd_memcpy	KEYWORD2
+cmd_memset	KEYWORD2
+cmd_memwrite	KEYWORD2
+cmd_regwrite	KEYWORD2
+cmd_number	KEYWORD2
+cmd_progress	KEYWORD2
+cmd_rotate	KEYWORD2
+cmd_scale	KEYWORD2
+cmd_scrollbar	KEYWORD2
+cmd_setfont	KEYWORD2
+cmd_setmatrix	KEYWORD2
+cmd_sketch	KEYWORD2
+cmd_slider	KEYWORD2
+cmd_spinner	KEYWORD2
+cmd_stop	KEYWORD2
+cmd_text	KEYWORD2
+cmd_toggle	KEYWORD2
+cmd_track	KEYWORD2
+cmd_translate	KEYWORD2
+
 begin	KEYWORD2
-beginTransmission	KEYWORD2
-endTransmission	KEYWORD2
-requestFrom	KEYWORD2
-send	KEYWORD2
-receive	KEYWORD2
-onReceive	KEYWORD2
-onRequest	KEYWORD2
+finish	KEYWORD2
+flush	KEYWORD2
+get_accel	KEYWORD2
+get_inputs	KEYWORD2
+load	KEYWORD2
+play	KEYWORD2
+self_calibrate	KEYWORD2
+sample	KEYWORD2
+swap	KEYWORD2
+
+atan2	KEYWORD2
+polar	KEYWORD2
+random	KEYWORD2
+rcos	KEYWORD2
+rsin	KEYWORD2
 
 #######################################
 # Instances (KEYWORD2)
@@ -29,3 +104,51 @@ Gameduino	KEYWORD2
 # Constants (LITERAL1)
 #######################################
 
+NEVER	LITERAL1
+LESS	LITERAL1
+LEQUAL	LITERAL1
+GREATER	LITERAL1
+GEQUAL	LITERAL1
+EQUAL	LITERAL1
+NOTEQUAL	LITERAL1
+ALWAYS	LITERAL1
+
+BITMAPS	LITERAL1
+POINTS	LITERAL1
+LINES	LITERAL1
+RECTS	LITERAL1
+LINE_STRIP	LITERAL1
+EDGE_STRIP_A	LITERAL1
+EDGE_STRIP_B	LITERAL1
+EDGE_STRIP_L	LITERAL1
+EDGE_STRIP_R	LITERAL1
+
+ARGB1555	LITERAL1
+L1	LITERAL1
+L4	LITERAL1
+L8	LITERAL1
+RGB332	LITERAL1
+ARGB2	LITERAL1
+ARGB4	LITERAL1
+RGB565	LITERAL1
+PALETTED	LITERAL1
+TEXT8X8	LITERAL1
+TEXTVGA	LITERAL1
+BARGRAPH	LITERAL1
+
+ZERO	LITERAL1
+ONE	LITERAL1
+SRC_ALPHA	LITERAL1
+DST_ALPHA	LITERAL1
+ONE_MINUS_SRC_ALPHA	LITERAL1
+ONE_MINUS_DST_ALPHA	LITERAL1
+
+NEAREST	LITERAL1
+BILINEAR	LITERAL1
+BORDER	LITERAL1
+REPEAT	LITERAL1
+
+OPT_CENTER	LITERAL1
+OPT_CENTERX	LITERAL1
+OPT_CENTERY	LITERAL1
+OPT_SIGNED	LITERAL1
