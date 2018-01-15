@@ -27,6 +27,7 @@ def clean(src, is_due = False):
         if "//'" in l:
             l = l[:l.index("//'")]
         if vis and not "JCB" in l:
+            assert not "dumpscreen" in l
             dst.append(l.rstrip() + "\n")
         else:
             if "JCB{" in l:

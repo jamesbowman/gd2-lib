@@ -941,5 +941,4 @@ void loop()
     t++;  // JCB
     GD.swap();
   }
-  // GD.dumpscreen(); // JCB
 }

@@ -445,6 +445,4 @@ void loop()
   draw_faces(FACE_FRONT);
 
   GD.swap();
-
-  // GD.dumpscreen();
 }

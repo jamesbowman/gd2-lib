@@ -351,5 +351,4 @@ void loop()
   GD.RestoreContext();
 
   GD.swap();
-  GD.dumpscreen();
 }

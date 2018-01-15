@@ -186,13 +186,20 @@ static byte test_SDcard(void)
   return 1;
 }
 
-static int collect(int &rx, int &ry, int &rz)
+static void collect(int &rx, int &ry, int &rz)
 {
   uint16_t ax = 0, ay = 0, az = 0;
   for (byte i = 32; i; i--) {
-    int x = analogRead(A2);
-    int y = analogRead(A1);
-    int z = analogRead(A0);
+    int x = 0, y = 0, z = 0;
+#ifdef A2
+    x = analogRead(A2);
+#endif
+#ifdef A1
+    y = analogRead(A1);
+#endif
+#ifdef A0
+    z = analogRead(A0);
+#endif
     ax += x;
     ay += y;
     az += z;
