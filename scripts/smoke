@@ -1,0 +1,33 @@
+EXAMPLES=" \
+blobs \
+chess \
+cobra \
+cube \
+cube2 \
+fizz \
+frogger \
+helloworld \
+jnr \
+jpeg \
+kenney \
+logo \
+mono \
+nightstrike \
+noisy \
+radarchart \
+reflection \
+selftest \
+simon \
+sketch \
+slotgag \
+song \
+sprites \
+tiled \
+tilt \
+video1 \
+video2 \
+viewer \
+walk \
+widgets"
+
+scripts/confirm due $EXAMPLES
