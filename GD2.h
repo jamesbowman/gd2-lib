@@ -1,12 +1,13 @@
 /*
- * Copyright (C) 2013-2017 by James Bowman <jamesb@excamera.com>
- * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
- * Teensy 3.2 and ESP8266.
- *
+ * Copyright (C) 2013-2018 by James Bowman <jamesb@excamera.com>
+ * Gameduino 2/3 library for Arduino, Arduino Due, Teensy 3.2 and
+ * ESP8266.
  */
 
 #ifndef _GD2_H_INCLUDED
 #define _GD2_H_INCLUDED
+
+#define GD2_VERSION "%VERSION"
 
 #if defined(RASPBERRY_PI) || defined(DUMPDEV)
 #include "wiring.h"

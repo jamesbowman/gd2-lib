@@ -52,7 +52,8 @@ void testcard(int pass, const char *message)
   GD.cmd_text(240, 12, 28, OPT_CENTER,
     GD3 ? "Gameduino3 Self test" :
           "Gameduino2 Self test");
-
+  GD.cmd_text(GD.w - 2, 12, 27, OPT_CENTERY | OPT_RIGHTX,
+    GD2_VERSION);
   int y;
 
   y = 50;

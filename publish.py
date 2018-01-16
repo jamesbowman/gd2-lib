@@ -5,6 +5,20 @@
 # converted-assets.
 #
 
+version = open("version").read().strip()
+
+properties = """\
+name=Gameduino2
+version=%s
+author=James Bowman <jamesb@excamera.com>
+maintainer=James Bowman <jamesb@excamera.com>
+sentence=Gameduino 2 and 3 driver
+paragraph=for the popular Gameduino series of graphics, audio video shields.
+category=Display
+url=http://gameduino.com
+architectures=*
+""" % version
+
 inventory = {
     '1.Basics'      : "helloworld fizz blobs simon jpeg",
     '2.Graphics'    : "logo walk tiled mono slotgag reflection",
@@ -40,7 +54,9 @@ for (is_due, suffix) in [(False, ""), (True, "_Due")]:
     z = zipfile.ZipFile("Gameduino2%s.zip" % suffix, "w", zipfile.ZIP_DEFLATED)
 
     for f in "keywords.txt GD2.cpp GD2.h transports/wiring.h".split():
-        z.write(f, "Gameduino2/%s" % f)
+        c = open(f).read().replace('%VERSION', version)
+        z.writestr("Gameduino2/%s" % f, c)
+    z.writestr("Gameduino2/library.properties", properties)
 
     for d,projs in inventory.items():
         dir = "Gameduino2" + "/" + d
