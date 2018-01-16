@@ -30,4 +30,6 @@ viewer \
 walk \
 widgets"
 
-scripts/confirm due $EXAMPLES
+scripts/verify uno $EXAMPLES
+scripts/verify d1 $EXAMPLES
+scripts/verify due $EXAMPLES

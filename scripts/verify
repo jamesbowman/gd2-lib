@@ -1,6 +1,6 @@
 # Usage:
 #
-#   confirm target sketch...
+#   verify/upload target sketch...
 #
 # Builds sketch for target
 # Target can be: uno, due, d1
@@ -11,6 +11,7 @@
 
 set -e
 
+OPERATION=`basename $0`
 TARGET=$1; shift
 cp ~/.arduino15/preferences.txt-$TARGET ~/.arduino15/preferences.txt
 
@@ -37,6 +38,6 @@ do
   # -v
   # --upload
 
-  $HOME/arduino-1.8.3/arduino --verify $F.ino
+  $HOME/arduino-1.8.3/arduino --$OPERATION $F.ino
   cd ..
 done
