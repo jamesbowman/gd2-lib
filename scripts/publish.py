@@ -53,7 +53,7 @@ def clean(src, is_due = False):
 for (is_due, suffix) in [(False, ""), (True, "_Due")]:
     z = zipfile.ZipFile("Gameduino2%s.zip" % suffix, "w", zipfile.ZIP_DEFLATED)
 
-    for f in "keywords.txt GD2.cpp GD2.h transports/wiring.h".split():
+    for f in "GD2.cpp GD2.h transports/wiring.h".split():
         c = open(f).read().replace('%VERSION', version)
         z.writestr("Gameduino2/%s" % f, c)
     z.writestr("Gameduino2/library.properties", properties)
