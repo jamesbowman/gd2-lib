@@ -1,34 +1,34 @@
 EXAMPLES=" \
-blobs \
-chess \
-cobra \
-cube \
-cube2 \
-fizz \
-frogger \
-helloworld \
-jnr \
-jpeg \
-kenney \
-logo \
-mono \
-nightstrike \
-noisy \
-radarchart \
-reflection \
-selftest \
-simon \
-sketch \
-slotgag \
-song \
-sprites \
-tiled \
-tilt \
-video1 \
-video2 \
-viewer \
-walk \
-widgets"
+examples/blobs \
+examples/chess \
+examples/cobra \
+examples/cube \
+examples/cube2 \
+examples/fizz \
+examples/frogger \
+examples/helloworld \
+examples/jnr \
+examples/jpeg \
+examples/kenney \
+examples/logo \
+examples/mono \
+examples/nightstrike \
+examples/noisy \
+examples/radarchart \
+examples/reflection \
+examples/selftest \
+examples/simon \
+examples/sketch \
+examples/slotgag \
+examples/song \
+examples/sprites \
+examples/tiled \
+examples/tilt \
+examples/video1 \
+examples/video2 \
+examples/viewer \
+examples/walk \
+examples/widgets"
 
 scripts/verify uno $EXAMPLES
 scripts/verify d1 $EXAMPLES

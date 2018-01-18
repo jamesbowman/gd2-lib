@@ -26,9 +26,9 @@ do
   cp $F.ino w/
   if [ "$TARGET" = "due" ]
   then
-    sed -i '/EEPROM/d' w/$F.ino
+    sed -i '/EEPROM/d' w/$(basename $F).ino
   fi
-  for A in converted-assets/${F}*_assets.h
+  for A in converted-assets/$(basename $F)*_assets.h
   do
     [ -f $A ] && cp $A w/
   done
@@ -38,6 +38,6 @@ do
   # -v
   # --upload
 
-  $HOME/arduino-1.8.3/arduino --$OPERATION $F.ino
+  $HOME/arduino-1.8.3/arduino --$OPERATION $(basename $F).ino
   cd ..
 done
