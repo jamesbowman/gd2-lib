@@ -62,8 +62,8 @@ for (is_due, suffix) in [(False, ""), (True, "_Due")]:
         dir = "Gameduino2" + "/" + d
         for p in projs.split():
             pd = dir + "/" + p
-            z.writestr("%s/%s.ino" % (pd, p), clean(open("%s.ino" % p), is_due))
-            for l in open("%s.ino" % p):
+            z.writestr("%s/%s.ino" % (pd, p), clean(open("examples/%s.ino" % p), is_due))
+            for l in open("examples/%s.ino" % p):
                 if '#include "' in l:
                     hdr = l[10:l.rindex('"')]
                     z.write("converted-assets/%s" % hdr, "%s/%s" % (pd, hdr))
