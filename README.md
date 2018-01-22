@@ -40,3 +40,11 @@ There is a writeup here: http://excamera.com/sphinx/article-ili9488.html
 For the GPU select, modify ``#define CS`` at the start of ``transports/wiring.h``
 
 For the microSD select, modify ``#define SD_PIN`` at the start of ``GD2.cpp``
+
+**How do you run in portrait mode?**
+
+After calling ``GD.begin()`` set the orientation like this::
+
+    GD.cmd_setrotate(2);
+
+to enter portrait mode. The argument controls orientation, 0 and 1 are landscape. 2 and 3 are portrait.
