@@ -12,7 +12,7 @@ To build the release library ``Gameduino2.zip`` run:
 FAQ
 ---
 
-**How do I use GD with an 800x480 display?**
+**How do I use GD with a 800x480 display?**
 
 After calling ``GD.begin()`` you can set the scanout registers for 800x480 like this:
 
@@ -31,15 +31,15 @@ After calling ``GD.begin()`` you can set the scanout registers for 800x480 like 
     GD.wr16(vc.REG_PCLK_POL, 0);
     GD.wr16(vc.REG_PCLK, 4);
 
-**How do I use GD with an 320x480 display?**
+**How do I use GD with a 320x480 display?**
 
 There is a writeup here: http://excamera.com/sphinx/article-ili9488.html
 
 **How do I change the select pin assignments?**
 
-For the GPU select, modify ``#define CS`` at the start of ``transports/wiring.h``
+To change the GPU select from pin 8, modify ``#define CS`` at the start of ``transports/wiring.h``
 
-For the microSD select, modify ``#define SD_PIN`` at the start of ``GD2.cpp``
+To change microSD select from pin 9, modify ``#define SD_PIN`` at the start of ``GD2.cpp``
 
 **How do you run in portrait mode?**
 
