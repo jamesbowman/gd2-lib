@@ -33,7 +33,7 @@ static void log(const char*s)
 void setup()
 {
   Serial.begin(UART_SPEED);
-  Serial.println("---- GAMEDUINO 2 SELFTEST ----");
+  Serial.println("---- GAMEDUINO 2/3 SELFTEST ----");
 }
 
 static void ramp(int y, uint32_t color)
@@ -49,24 +49,25 @@ void testcard(int pass, const char *message)
 
   GD.get_inputs();
   GD.Clear();
-  GD.cmd_text(240, 12, 28, OPT_CENTER,
+  GD.cmd_text(GD.w / 2, 12, 28, OPT_CENTER,
     GD3 ? "Gameduino3 Self test" :
           "Gameduino2 Self test");
   GD.cmd_text(GD.w - 2, 12, 27, OPT_CENTERY | OPT_RIGHTX,
     GD2_VERSION);
   int y;
 
-  y = 50;
+  y = PIXELS(50);
   GD.Begin(POINTS);
   for (int i = 0; i < 6; i++) {
     byte l = 4 << i;
+    int x = map(1 + i, 0, 7, 0, PIXELS(GD.w));
     GD.PointSize(280);
     GD.ColorRGB(0xffffff);
-    GD.Vertex2ii(68 * (i + 1), y, 0, 0);
+    GD.Vertex2f(x, y);
 
     GD.PointSize(240);
     GD.ColorRGB(l, l, l);
-    GD.Vertex2ii(68 * (i + 1), y, 0, 0);
+    GD.Vertex2f(x, y);
   }
   y += 30;
 
@@ -84,7 +85,7 @@ void testcard(int pass, const char *message)
     GD.ColorRGB(0x808000);
   else
     GD.ColorRGB(pass ? 0x40ff40 : 0xff4040);
-  GD.cmd_text(120, 180, 31, OPT_CENTERY, message);
+  GD.cmd_text(GD.w / 2, 180, 31, OPT_CENTER, message);
 
   GD.ColorRGB(0xffffff);
   GD.Begin(LINES);
@@ -287,8 +288,6 @@ static void play_wait(uint16_t n)
 static byte test_touch(void)
 {
   if (!GD3) {
-    GD.Clear();
-    GD.cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
     GD.self_calibrate();
     // write the new calibration back to EEPROM
 
@@ -610,36 +609,42 @@ void ram_get(byte *v)
   i2c_stop();
 }
 
-static void load_flash()
+static void load_flash(uint8_t *config)
+{
+    byte b[128];
+
+    i2c_begin();
+    ram_write(config);
+    ram_get(b);
+    int diff = memcmp(config, b, 128);
+    if (diff != 0) {
+      Serial.println("Flash fault");
+      GD.Clear();
+      GD.cmd_text(GD.w / 2, GD.h / 2, 30, OPT_CENTERX, "Flash fault");
+      GD.swap();
+      for (;;);
+    }
+    Serial.println("Flash verified OK");
+    GD.begin(0);
+}
+
+static void setup_flash()
 {
   GD.begin(0);
 
   if (GD3) {
     uint8_t stage[128];
-    memcpy(stage, GD3_43__init, 128);
+    memcpy(stage, GD3_7__init, 128);
 
-    i2c_begin();
+    load_flash(stage);
 
-    GD.Clear();
-    GD.cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
-    GD.self_calibrate();
+    // GD.self_calibrate();
     GD.finish();
 
     for (int i = 0; i < 24; i++)
       stage[CALIBRATION_OFFSET + i] = GD.rd(REG_TOUCH_TRANSFORM_A + i);
 
-    ram_write(stage);
-    byte b[128];
-    ram_get(b);
-    Serial.print("compare ");
-    int diff = memcmp(stage, b, 128);
-    if (diff != 0) {
-      GD.Clear();
-      GD.cmd_text(240, 100, 30, OPT_CENTERX, "FLASH fault");
-      GD.swap();
-      for (;;);
-    }
-    Serial.println(diff);
+    load_flash(stage);
   }
 }
 
@@ -647,7 +652,7 @@ void loop()
 {
   if (EEPROM.read(0) == 0x7c)
     EEPROM.write(0, 0xff);
-  load_flash();
+  setup_flash();
   GD.begin(0);
 
   x = y = 0;
