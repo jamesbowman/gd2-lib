@@ -646,7 +646,7 @@ void GDClass::storage(void) {
 void GDClass::self_calibrate(void) {
   cmd_dlstart();
   Clear();
-  cmd_text(240, 100, 30, OPT_CENTERX, "please tap on the dot");
+  cmd_text(w / 2, h / 2, 30, OPT_CENTER, "please tap on the dot");
   cmd_calibrate();
   finish();
   cmd_loadidentity();
@@ -1589,16 +1589,17 @@ void GDClass::dumpscreen(void)
 {
   {
     finish();
+    int w = GD.rd16(REG_HSIZE), h = GD.rd16(REG_VSIZE);
 
     wr(REG_SCREENSHOT_EN, 1);
     if (ft8xx_model)
       wr(0x0030201c, 32);
     Serial.write(0xa5);
-    Serial.write(GD.w & 0xff);
-    Serial.write((GD.w >> 8) & 0xff);
-    Serial.write(GD.h & 0xff);
-    Serial.write((GD.h >> 8) & 0xff);
-    for (int ly = 0; ly < GD.h; ly++) {
+    Serial.write(w & 0xff);
+    Serial.write((w >> 8) & 0xff);
+    Serial.write(h & 0xff);
+    Serial.write((h >> 8) & 0xff);
+    for (int ly = 0; ly < h; ly++) {
       wr16(REG_SCREENSHOT_Y, ly);
       wr(REG_SCREENSHOT_START, 1);
       delay(2);
@@ -1607,7 +1608,7 @@ void GDClass::dumpscreen(void)
       wr(REG_SCREENSHOT_READ, 1);
       bulkrd(RAM_SCREENSHOT);
       SPI.transfer(0xff);
-      for (int x = 0; x < GD.w; x += 8) {
+      for (int x = 0; x < w; x += 8) {
         union {
           uint32_t v;
           struct {
