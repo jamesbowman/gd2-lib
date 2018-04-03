@@ -634,11 +634,11 @@ static void setup_flash()
 
   if (GD3) {
     uint8_t stage[128];
-    memcpy(stage, GD3_7__init, 128);
+    memcpy(stage, GD3_43__init, 128);
 
     load_flash(stage);
 
-    // GD.self_calibrate();
+    GD.self_calibrate();
     GD.finish();
 
     for (int i = 0; i < 24; i++)
