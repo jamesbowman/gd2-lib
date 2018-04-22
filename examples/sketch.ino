@@ -5,7 +5,7 @@
 void setup() //' a{
 {
   Serial.begin(115200); // JCB
-  GD.begin();
+  GD.begin(~GD_STORAGE);
   GD.cmd_memset(0, 0, long(GD.w) * GD.h);   // clear the bitmap
   GD.Clear();                           // draw the bitmap
 

@@ -9,7 +9,7 @@ const xy offscreen = {-16384, -16384};
 
 void setup()
 {
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 
   for (int i = 0; i < NBLOBS; i++)
     blobs[i] = offscreen;

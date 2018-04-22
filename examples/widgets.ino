@@ -10,7 +10,7 @@ static byte prevkey;
 void setup()
 {
   memset(message, 7, 40);
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 }
 
 #define TAG_DIAL      200

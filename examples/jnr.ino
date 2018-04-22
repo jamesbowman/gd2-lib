@@ -133,7 +133,7 @@ static void draw(int xx)
 
 void setup()
 {
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 
   LOAD_ASSETS();
 

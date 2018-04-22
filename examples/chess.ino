@@ -12,7 +12,7 @@ static byte sinus(byte x)
 void setup()
 {
   Serial.begin(1000000);    // JCB
-  GD.begin();
+  GD.begin(~GD_STORAGE);
   LOAD_ASSETS();
   GD.BitmapHandle(1);
   GD.BitmapSource(CHECKER);

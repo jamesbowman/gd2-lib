@@ -244,7 +244,7 @@ static void draw(int t)
 
 void setup()
 {
-  GD.begin();
+  GD.begin(~GD_STORAGE);
   Serial.begin(1000000);
   // GD.wr32(REG_PWM_HZ, 18000); GD.wr(REG_PWM_DUTY, 64);
 

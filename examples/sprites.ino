@@ -6,7 +6,7 @@
 
 void setup()
 {
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 
   LOAD_ASSETS();
 }

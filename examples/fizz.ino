@@ -5,7 +5,7 @@
 void setup()
 {
   Serial.begin(1000000); // JCB
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 }
 
 void loop() //' a{

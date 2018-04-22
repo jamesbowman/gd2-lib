@@ -5,7 +5,7 @@
 void setup()
 {
   Serial.begin(1000000); 
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 }
 
 static void ray(int &x, int &y, int r, int i)

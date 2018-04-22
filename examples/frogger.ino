@@ -428,7 +428,7 @@ void loop()
 void setup()
 {
   Serial.begin(1000000);    // JCB
-  GD.begin();
+  GD.begin(~GD_STORAGE);
   LOAD_ASSETS();
   game_setup();
 }
