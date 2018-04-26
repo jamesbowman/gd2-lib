@@ -1127,9 +1127,9 @@ class Poly {
       GD.ColorMask(1,1,1,1);
       GD.StencilFunc(EQUAL, 255, 255);
 
-      GD.Begin(EDGE_STRIP_B);
-      GD.Vertex2ii(0, 0);
-      GD.Vertex2ii(511, 0);
+      GD.Begin(EDGE_STRIP_R);
+      GD.Vertex2f(0, 0);
+      GD.Vertex2f(0, PIXELS(GD.h));
     }
     void draw() {
       paint();
