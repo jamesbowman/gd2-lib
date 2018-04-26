@@ -520,9 +520,11 @@ void GDClass::begin(uint8_t options) {
   }
 #endif
 
+  byte external_crystal = 0;
+begin1:
   GDTR.begin1();
 
-#if 0
+#if 1
   Serial.println("ID REGISTER:");
   Serial.println(GDTR.rd(REG_ID), HEX);
 #endif
@@ -542,10 +544,10 @@ void GDClass::begin(uint8_t options) {
   cr.read(v8);
   if ((v8[1] == 0xff) && (v8[2] == 0x01)) {
     options &= ~(GD_TRIM | GD_CALIBRATE);
-    if (v8[3] & 2) {
-      GDTR.__end();
-      GDTR.hostcmd(0x44); // switch to external crystal
-      GDTR.resume();
+    if (!external_crystal && (v8[3] & 2)) {
+      GDTR.external_crystal();
+      external_crystal = 1;
+      goto begin1;
     }
     copyram(v8 + 4, 124);
     finish();
