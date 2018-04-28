@@ -524,7 +524,7 @@ void GDClass::begin(uint8_t options) {
 begin1:
   GDTR.begin1();
 
-#if 1
+#if 0
   Serial.println("ID REGISTER:");
   Serial.println(GDTR.rd(REG_ID), HEX);
 #endif
