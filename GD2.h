@@ -1072,8 +1072,11 @@ typedef struct {
 #define REG_VSYNC1            (ft8xx_model ? 0x302050UL : 0x10244cUL)
 #define FONT_ROOT             (ft8xx_model ? 0x2ffffcUL : 0x0ffffcUL)
 
-#define REG_MEDIAFIFO_READ    0x309014
-#define REG_MEDIAFIFO_WRITE   0x309018
+// FT81x only registers
+#define REG_CMDB_SPACE                       0x302574UL
+#define REG_CMDB_WRITE                       0x302578UL
+#define REG_MEDIAFIFO_READ                   0x309014UL
+#define REG_MEDIAFIFO_WRITE                  0x309018UL
 
 #define VERTEX2II(x, y, handle, cell) \
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))

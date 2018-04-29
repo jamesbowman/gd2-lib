@@ -27,7 +27,7 @@
 #define CALIBRATION   1                 // Want touchscreen?
 
 // FTDI boards do not have storage
-#if (BOARD == BOARD_FTDI_80x)
+#if (BOARD == BOARD_FTDI_80x) || defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
 #undef STORAGE
 #define STORAGE 0
 #endif
@@ -57,6 +57,10 @@ byte ft8xx_model;
 
 #if defined(ARDUINO)
 #include "transports/wiring.h"
+#endif
+
+#if defined(SPIDRIVER)
+#include "transports/tr-spidriver.h"
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -511,7 +515,7 @@ void GDClass::tune(void)
 }
 
 void GDClass::begin(uint8_t options) {
-#if defined(ARDUINO) || defined(ESP8266)
+#if defined(ARDUINO) || defined(ESP8266) || defined(SPIDRIVER)
   GDTR.begin0();
 
   if (STORAGE && (options & GD_STORAGE)) {
@@ -1494,7 +1498,7 @@ void GDClass::reset() {
 
 byte GDClass::load(const char *filename, void (*progress)(long, long))
 {
-#if defined(RASPBERRY_PI) || defined(DUMPDEV)
+#if defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
   char full_name[2048]  = "sdcard/";
   strcat(full_name, filename);
   FILE *f = fopen(full_name, "rb");

@@ -70,8 +70,9 @@ class _SPI {
     void begin() {
     }
     uint8_t transfer(uint8_t c) {
-      uint8_t r = spix(c);
-      return r;
+      assert(0);
+      // uint8_t r = spix(c);
+      return 0;
     }
     uint8_t transfer(uint8_t *m, size_t c) {
       assert(0);
@@ -150,4 +151,6 @@ typedef const unsigned long prog_uint32_t;
 
 #define highByte(x) ((x) >> 8)
 #define lowByte(x) ((x) & 255)
+#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 
+long map(long x, long in_min, long in_max, long out_min, long out_max);
