@@ -861,14 +861,14 @@ static void draw_fade(byte fade)
 
 static void welcome()
 {
-  Streamer stream;
+  // Streamer stream;
 
   GD.safeload("nightw.gd2");
   byte fade = 0;
   int t;
 
   const char song[] = "mesmeriz.ima";
-  stream.begin(song);
+  // stream.begin(song);
   byte playing = 1;
   do {
     GD.get_inputs();
@@ -890,10 +890,10 @@ static void welcome()
     draw_fade(fade);
     GD.swap();
     GD.random();
-    if (!stream.feed()) {
-      playing = 0;
-      GD.sample(0, 0, 0, 0);
-    }
+    // if (!stream.feed()) {
+    //   playing = 0;
+    //   GD.sample(0, 0, 0, 0);
+    // }
   } while (fade != 255);
   GD.sample(0, 0, 0, 0);
   // GD.play(MUTE); GD.play(UNMUTE);

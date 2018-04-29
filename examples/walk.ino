@@ -27,7 +27,3 @@ void loop()
   }
   GD.swap();
 } //' }A
-
-/*
-    GD.Vertex2ii(x, y, WALK_HANDLE);   //' asset{ }asset
-*/

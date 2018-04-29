@@ -140,6 +140,7 @@ void project(float distance)
   const PROGMEM int8_t *pm_e = pm + sizeof(COBRA_vertices);
   xyz *dst = projected;
   int8_t x, y, z;
+  int hw = GD.w / 2;
 
   while (pm < pm_e) {
     x = pgm_read_byte_near(pm++);
@@ -148,9 +149,9 @@ void project(float distance)
     float xx = x * model_mat[0] + y * model_mat[3] + z * model_mat[6];
     float yy = x * model_mat[1] + y * model_mat[4] + z * model_mat[7];
     float zz = x * model_mat[2] + y * model_mat[5] + z * model_mat[8] + distance;
-    float q = 240 / (100 + zz);
-    dst->x = 16 * (240 + xx * q);
-    dst->y = 16 * (136 + yy * q);
+    float q = hw / (100 + zz);
+    dst->x = 16 * (hw       + xx * q);
+    dst->y = 16 * (GD.h / 2 + yy * q);
     dst->z = zz;
     dst++;
   }
@@ -357,11 +358,11 @@ void setup()
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
-  GD.BitmapSize(BILINEAR, REPEAT, REPEAT, 480, 272);
-#ifdef DUMPDEV    // JCB{
-  // startMotion(240, 136);
-  // trackMotion(240, 138);
-#endif          // }JCB
+  GD.BitmapSize(BILINEAR, REPEAT, REPEAT, GD.w, GD.h);
+// #ifdef DUMPDEV    // JCB{
+  startMotion(240, 136);
+  trackMotion(243, 138);
+// #endif          // }JCB
 }
 
 static byte prev_touching;
@@ -428,9 +429,9 @@ void loop()
   draw_navlight(0);
   GD.RestoreContext();
 #ifndef DUMPDEV // JCB{
-  GD.cmd_number(240, 7, 26, OPT_CENTER, micros() - t0);
+  GD.cmd_number(GD.w / 2, 7, 26, OPT_CENTER, micros() - t0);
 #else
-  GD.cmd_number(240, 7, 26, OPT_CENTER, t);
+  GD.cmd_number(GD.w / 2, 7, 26, OPT_CENTER, t);
 #endif        // }JCB
 
   GD.swap();

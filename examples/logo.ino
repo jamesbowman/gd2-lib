@@ -30,7 +30,7 @@ void loop()
     stars[i].set(GD.random(PIXELS(GD.w)), GD.random(PIXELS(GD.h)));
 
   for (int t = 0; t < 464; t++) {
-    GD.cmd_gradient(0, 0, 0x120000, 0, 272, 0x480000);
+    GD.cmd_gradient(0, 0, 0x120000, 0, GD.h, 0x480000);
     GD.BlendFunc(SRC_ALPHA, ONE);
     GD.Begin(POINTS);
     for (int i = 0; i < NSTARS; i++) {
@@ -85,9 +85,9 @@ void loop()
     // Fade to white at the end by drawing a white rectangle on top
     fade = clamp255(5 * (t - 400));
     GD.ColorA(fade);
-    GD.Begin(RECTS);
-    GD.Vertex2ii(0, 0, 0, 0);
-    GD.Vertex2ii(480, 272, 0, 0);
+    GD.Begin(EDGE_STRIP_R);
+    GD.Vertex2f(0, 0);
+    GD.Vertex2f(0, PIXELS(GD.h));
 
     GD.swap();
   }
