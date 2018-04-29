@@ -14,6 +14,10 @@ set -e
 OPERATION=`basename $0`
 TARGET=$1; shift
 cp ~/.arduino15/preferences.txt-$TARGET ~/.arduino15/preferences.txt
+if [ -n "$PORT" ]
+then
+  echo "serial.port=$PORT" >> ~/.arduino15/preferences.txt
+fi
 
 for F in $*
 do
