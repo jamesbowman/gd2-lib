@@ -92,6 +92,11 @@ public:
     stream();
   }
 
+  void external_crystal() {
+    __end();
+    hostcmd(0x44);
+  }
+
   void cmd32(uint32_t x) {
     if (freespace < 4) {
       getfree(4);
