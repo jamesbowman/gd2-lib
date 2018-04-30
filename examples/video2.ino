@@ -4,7 +4,7 @@
 
 Dirsearch ds;
 
-char *pickfile(char *ext)
+char *pickfile(const char *ext)
 {
   GD.Clear();
   ds.begin();

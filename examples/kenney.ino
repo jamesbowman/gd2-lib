@@ -4,6 +4,7 @@
 
 #include "kenney_assets.h"
 
+#undef PLAYER1_SIZE
 #define PLAYER1_SIZE  (PLAYER1_HEIGHT + 8)
 #define HEART_SZ    (HEART_HEIGHT + 14)
 
@@ -50,7 +51,7 @@ class Trail {
     }
 };
 
-struct {
+struct state_t {
   xy p[3];
   Trail trail[3];
   xy hearts[20];
