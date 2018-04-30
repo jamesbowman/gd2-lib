@@ -2,7 +2,10 @@
 
 class GDTransport {
   SPIDriver sd;
-  uint16_t space;
+  uint16_t space, wp;
+
+  uint8_t buf[64];
+  size_t nbuf;
 
 public:
   void begin0(void) {
@@ -19,6 +22,7 @@ public:
   void begin1(void) {
     while ((__rd16(0xc0000UL) & 0xff) != 0x08)
       ;
+    wp = 0;
     stream();
   }
   void ios(void) {}
@@ -27,16 +31,21 @@ public:
     hostcmd(0x44);
   }
   void cmdbyte(char x) {
-    getspace(1);
-    spi_write(&sd, 1, &x);
+    if (nbuf == 64)
+      flush();
+    buf[nbuf++] = x;
   }
   void cmd32(uint32_t x) {
-    getspace(4);
-    spi_write(&sd, 4, (char*)&x);
+    if (nbuf == 64)
+      flush();
+    *(uint32_t*)&buf[nbuf] = x;
+    nbuf += 4;
   }
   void cmd_n(byte *s, size_t n) {
+    flush();
     getspace(n);
     spi_write(&sd, n, (char*)s);
+    wp += n;
   }
   void hostcmd(uint8_t a)
   {
@@ -74,8 +83,8 @@ public:
     spi_unsel(&sd);
   }
   void stream(void) {
-    __end();
     space = __rd16(REG_CMDB_SPACE);
+    assert((space & 3) == 0);
     __wstart(REG_CMDB_WRITE);
   }
   void resume(void) {
@@ -89,9 +98,14 @@ public:
     space -= n;
   }
   uint32_t getwp(void) {
-    assert(0);
+    flush();
+    return RAM_CMD + (wp & 0xffc);
   }
-  uint32_t rd32(uint32_t a) { return 0xff; }
+  uint32_t rd32(uint32_t a) {
+    uint32_t r;
+    rd_n((byte*)&r, a, 4);
+    return r;
+  }
   void rd_n(byte *dst, uint32_t a, uint16_t n) {
     __end();
     char buf[4] = {a >> 16, a >> 8, a, 0xff};
@@ -101,11 +115,22 @@ public:
     spi_unsel(&sd);
     stream();
   }
-  void wr32(uint32_t a, uint32_t v) { }
+  void wr32(uint32_t a, uint32_t v) {
+  }
   void flush() {
+    if (nbuf) {
+      getspace(nbuf);
+      spi_write(&sd, nbuf, (char*)buf);
+      wp += nbuf;
+      nbuf = 0;
+    }
   }
   void finish() {
-    getspace(4092);
+    flush();
+    while (space < 4092) {
+      __end();
+      stream();
+    }
   }
   void bulk(uint32_t addr) {}
 
@@ -130,5 +155,7 @@ public:
     spi_unsel(&sd);
   }
   void stop() {} // end the SPI transaction
-  void wr_n(uint32_t addr, byte *src, uint16_t n) {}
+  void wr_n(uint32_t addr, byte *src, uint16_t n) {
+    assert(0);
+  }
 };
