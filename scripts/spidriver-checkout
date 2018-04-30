@@ -1,0 +1,19 @@
+# set -e
+
+trap '' INT
+
+function ctrl_c() {
+  echo "** Trapped CTRL-C"
+}
+
+TESTS="helloworld fizz blobs simon jpeg logo walk tiled mono slotgag reflection sketch tilt noisy song viewer radarchart cobra jnr kenney sprites widgets nightstrike chess frogger"
+# TESTS="nightstrike frogger"
+
+for T in $TESTS
+do
+  tput clear
+  banner $T
+  trap "echo Proceeding" SIGINT
+  ./build/$T
+  trap - SIGINT
+done
