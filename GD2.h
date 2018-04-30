@@ -1340,8 +1340,6 @@ public:
     if (r.eof()) {
       return 0;
     } else {
-      byte buf[512];
-
       uint32_t fullness = (wp - GD.rd32(REG_MEDIAFIFO_READ)) & (mf_size - 1);
       while (fullness < (mf_size - 512)) {
         loadsector();

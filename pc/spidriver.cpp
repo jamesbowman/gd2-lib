@@ -80,7 +80,7 @@ void spi_connect(SPIDriver *sd, const char* portname)
   sd->port = openSerialPort(portname);
   writeToSerialPort(sd->port, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", 64);
   for (int i = 0; i < 256; i++) {
-    char tx[2] = {'e', i};
+    char tx[2] = {'e', (char)i};
     writeToSerialPort(sd->port, tx, 2);
     char rx[1];
     readFromSerialPort(sd->port, rx, 1);

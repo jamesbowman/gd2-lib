@@ -49,7 +49,7 @@ public:
   }
   void hostcmd(uint8_t a)
   {
-    char buf[3] = {a, 0, 0};
+    char buf[3] = {(char)a, 0, 0};
     spi_sel(&sd);
     spi_write(&sd, 3, buf);
     spi_unsel(&sd);
@@ -69,10 +69,13 @@ public:
   uint8_t rd(uint32_t a) {
     return rd16(a);
   }
+#define ADDR3(a)  (char)((a >> 16)       ), (char)(a >> 8), (char)(a)
+#define WADDR3(a) (char)((a >> 16) | 0x80), (char)(a >> 8), (char)(a)
+
   void wr(uint32_t a, byte v)
   {
     __end();
-    char buf[4] = {(a >> 16) | 0x80, a >> 8, a, v};
+    char buf[4] = {WADDR3(a), (char)v};
     spi_sel(&sd);
     spi_write(&sd, sizeof(buf), buf);
     spi_unsel(&sd);
@@ -108,7 +111,7 @@ public:
   }
   void rd_n(byte *dst, uint32_t a, uint16_t n) {
     __end();
-    char buf[4] = {a >> 16, a >> 8, a, 0xff};
+    char buf[4] = {ADDR3(a)};
     spi_sel(&sd);
     spi_write(&sd, sizeof(buf), buf);
     spi_read(&sd, n, (char*)dst);
@@ -134,14 +137,14 @@ public:
   }
   void bulk(uint32_t addr) {}
 
-  unsigned int __wstart(uint32_t a) {
-    char buf[3] = {0x80 | (a >> 16), a >> 8, a};
+  void __wstart(uint32_t a) {
+    char buf[3] = {WADDR3(a)};
     spi_sel(&sd);
     spi_write(&sd, sizeof(buf), buf);
   }
 
   unsigned int __rd16(uint32_t a) {
-    char buf[6] = {a >> 16, a >> 8, a, 0xff, 0xff, 0xff};
+    char buf[6] = {ADDR3(a), -1, -1, -1};
     spi_sel(&sd);
     spi_writeread(&sd, sizeof(buf), buf);
     spi_unsel(&sd);
@@ -149,7 +152,7 @@ public:
   }
 
   void __wr16(uint32_t a, unsigned int v) {
-    char buf[5] = {(a >> 16) | 0x80, a >> 8, a, v, v >> 8};
+    char buf[5] = {WADDR3(a), (char)v, (char)(v >> 8)};
     spi_sel(&sd);
     spi_write(&sd, sizeof(buf), buf);
     spi_unsel(&sd);
