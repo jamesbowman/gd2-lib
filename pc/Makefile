@@ -16,7 +16,7 @@ clean:
 OPTS=
 # OPTS=-g -Wall -Wno-unused-function
 
-build/%: examples/%.ino GD2.cpp GD2.h transports/* pc/Makefile
+build/%: examples/%.ino GD2.cpp GD2.h transports/* pc/*
 	g++ $(OPTS) -o $@ -g  -D TEENSYDUINO=1 -DARDUINO_ARCH_STM32L4=1 -DSPIDRIVER=1 \
           -I pc/ -I converted-assets/ -I $D -x c++ $< pc/main.cpp pc/spidriver.cpp GD2.cpp
 

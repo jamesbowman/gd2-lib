@@ -24,7 +24,7 @@ static const PROGMEM int8_t CUBE_vertices[] = {
 
 // each line is a face: count, normal, 4 vertices
 
-static const PROGMEM uint8_t CUBE_faces[] = {
+static const PROGMEM int8_t CUBE_faces[] = {
   4, 0,0,127,   0, 1, 3, 2,
   4, 0,0,-127,  6, 7, 5, 4,
 
@@ -34,7 +34,7 @@ static const PROGMEM uint8_t CUBE_faces[] = {
   4, 127,0,0,   0, 2, 6, 4,
   4, -127,0,0,  3, 1, 5, 7,
 
-  0xff
+  -1
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +199,7 @@ static void quad(int x1, int y1,
 void draw_faces(int dir)
 {
   int R = 15;
-  const PROGMEM uint8_t *p = CUBE_faces; 
+  const PROGMEM int8_t *p = CUBE_faces; 
   byte n;
 
   GD.BlendFunc(ONE, ONE_MINUS_SRC_ALPHA);

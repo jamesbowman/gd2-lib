@@ -144,7 +144,7 @@ public:
   }
 
   unsigned int __rd16(uint32_t a) {
-    char buf[6] = {ADDR3(a), -1, -1, -1};
+    char buf[6] = {ADDR3(a), (char)-1, (char)-1, (char)-1};
     spi_sel(&sd);
     spi_writeread(&sd, sizeof(buf), buf);
     spi_unsel(&sd);
