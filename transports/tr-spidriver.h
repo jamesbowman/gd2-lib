@@ -44,14 +44,14 @@ public:
   void cmd_n(byte *s, size_t n) {
     flush();
     getspace(n);
-    spi_write(&sd, n, (char*)s);
+    spi_write(&sd, (char*)s, n);
     wp += n;
   }
   void hostcmd(uint8_t a)
   {
     char buf[3] = {(char)a, 0, 0};
     spi_sel(&sd);
-    spi_write(&sd, 3, buf);
+    spi_write(&sd, buf, 3);
     spi_unsel(&sd);
   }
 
@@ -77,7 +77,7 @@ public:
     __end();
     char buf[4] = {WADDR3(a), (char)v};
     spi_sel(&sd);
-    spi_write(&sd, sizeof(buf), buf);
+    spi_write(&sd, buf, sizeof(buf));
     spi_unsel(&sd);
     stream();
   }
@@ -113,8 +113,8 @@ public:
     __end();
     char buf[4] = {ADDR3(a)};
     spi_sel(&sd);
-    spi_write(&sd, sizeof(buf), buf);
-    spi_read(&sd, n, (char*)dst);
+    spi_write(&sd, buf, sizeof(buf));
+    spi_read(&sd, (char*)dst, n);
     spi_unsel(&sd);
     stream();
   }
@@ -123,7 +123,7 @@ public:
   void flush() {
     if (nbuf) {
       getspace(nbuf);
-      spi_write(&sd, nbuf, (char*)buf);
+      spi_write(&sd, (char*)buf, nbuf);
       wp += nbuf;
       nbuf = 0;
     }
@@ -140,13 +140,13 @@ public:
   void __wstart(uint32_t a) {
     char buf[3] = {WADDR3(a)};
     spi_sel(&sd);
-    spi_write(&sd, sizeof(buf), buf);
+    spi_write(&sd, buf, sizeof(buf));
   }
 
   unsigned int __rd16(uint32_t a) {
     char buf[6] = {ADDR3(a), (char)-1, (char)-1, (char)-1};
     spi_sel(&sd);
-    spi_writeread(&sd, sizeof(buf), buf);
+    spi_writeread(&sd, buf, sizeof(buf));
     spi_unsel(&sd);
     return *(uint16_t*)&buf[4];
   }
@@ -154,7 +154,7 @@ public:
   void __wr16(uint32_t a, unsigned int v) {
     char buf[5] = {WADDR3(a), (char)v, (char)(v >> 8)};
     spi_sel(&sd);
-    spi_write(&sd, sizeof(buf), buf);
+    spi_write(&sd, buf, sizeof(buf));
     spi_unsel(&sd);
   }
   void stop() {} // end the SPI transaction

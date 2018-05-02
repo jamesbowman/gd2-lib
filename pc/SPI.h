@@ -113,18 +113,23 @@ static void digitalWrite(int pin, int state)
 {
 }
 
-static uint32_t __lfsr = 1;
+static uint32_t seed = 7;
+
 static void randomSeed(unsigned int n)
 {
-  __lfsr = 1 | n;
+  seed = n | (n == 0);
 }
 
+static unsigned int xrandom()
+{
+  seed ^= seed << 13;
+  seed ^= seed >> 17;
+  seed ^= seed << 5;
+  return seed;
+}
 static unsigned int random(unsigned int n)
 {
-  uint32_t a = __lfsr;
-  for (int i = 0; i < 33; i++)
-    __lfsr = (__lfsr >> 1) ^ (-(__lfsr & 1u) & 0xD0000001u); 
-  return (a ^ __lfsr) % n;
+  return xrandom() % n;
 }
 static unsigned int random(unsigned int a, unsigned int b)
 {
