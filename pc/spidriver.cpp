@@ -140,7 +140,7 @@ void spi_setb(SPIDriver *sd, char v)
   sd->b = v;
 }
 
-void spi_write(SPIDriver *sd, size_t nn, const char bytes[])
+void spi_write(SPIDriver *sd, const char bytes[], size_t nn)
 {
   for (size_t i = 0; i < nn; i += 64) {
     size_t len = ((nn - i) < 64) ? (nn - i) : 64;
@@ -150,7 +150,7 @@ void spi_write(SPIDriver *sd, size_t nn, const char bytes[])
   }
 }
 
-void spi_read(SPIDriver *sd, size_t nn, char bytes[])
+void spi_read(SPIDriver *sd, char bytes[], size_t nn)
 {
   for (size_t i = 0; i < nn; i += 64) {
     size_t len = ((nn - i) < 64) ? (nn - i) : 64;
@@ -160,7 +160,7 @@ void spi_read(SPIDriver *sd, size_t nn, char bytes[])
   }
 }
 
-void spi_writeread(SPIDriver *sd, size_t nn, char bytes[])
+void spi_writeread(SPIDriver *sd, char bytes[], size_t nn)
 {
   for (size_t i = 0; i < nn; i += 64) {
     size_t len = ((nn - i) < 64) ? (nn - i) : 64;

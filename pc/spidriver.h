@@ -20,8 +20,8 @@ void spi_sel(SPIDriver *sd);
 void spi_unsel(SPIDriver *sd);
 void spi_seta(SPIDriver *sd, char v);
 void spi_setb(SPIDriver *sd, char v);
-void spi_write(SPIDriver *sd, size_t nn, const char bytes[]);
-void spi_read(SPIDriver *sd, size_t nn, char bytes[]);
-void spi_writeread(SPIDriver *sd, size_t nn, char bytes[]);
+void spi_write(SPIDriver *sd, const char bytes[], size_t nn);
+void spi_read(SPIDriver *sd, char bytes[], size_t nn);
+void spi_writeread(SPIDriver *sd, char bytes[], size_t nn);
 
 #endif
