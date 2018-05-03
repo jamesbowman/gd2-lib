@@ -1,2 +1,2 @@
 language: cpp
-script: scripst/travistest
+script: scripts/travistest
