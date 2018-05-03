@@ -1,0 +1,7 @@
+set -e
+
+mkdir -p $HOME/Arduino/libraries/ build/
+python scripts/publish.py
+unzip -q -o Gameduino2.zip -d $HOME/Arduino/libraries/
+
+make -f pc/Makefile
