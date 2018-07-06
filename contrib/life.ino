@@ -15,7 +15,7 @@ uint8_t a[BW * HEIGHT] = {PATTERN};
 
 void setup()
 {
-  GD.begin();
+  GD.begin(~GD_STORAGE);
 
   LOAD_ASSETS();
 
