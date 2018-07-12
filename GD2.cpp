@@ -842,6 +842,11 @@ void GDClass::BitmapLayout(byte format, uint16_t linestride, uint16_t height) {
   b[2] = (7 & (linestride >> 7)) | (format << 3);
   b[3] = 7;
   cI(c);
+  if (ft8xx_model) {
+    b[0] = (((linestride >> 10) & 3) << 2) | ((height >> 9) & 3);
+    b[3] = 0x28;
+    cI(c);
+  }
 }
 void GDClass::BitmapSize(byte filter, byte wrapx, byte wrapy, uint16_t width, uint16_t height) {
   byte fxy = (filter << 2) | (wrapx << 1) | (wrapy);
