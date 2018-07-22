@@ -23,9 +23,9 @@
 #define BOARD_GAMEDUINO23 1
 #define BOARD_SUNFLOWER   2
 
-#define BOARD         BOARD_SUNFLOWER   // board, from above
+#define BOARD         BOARD_GAMEDUINO23 // board, from above
 #define STORAGE       1                 // Want SD storage?
-#define CALIBRATION   0                 // Want touchscreen?
+#define CALIBRATION   1                 // Want touchscreen?
 
 // FTDI boards do not have storage
 #if (BOARD == BOARD_FTDI_80x) || defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
