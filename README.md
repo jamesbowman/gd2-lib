@@ -37,6 +37,14 @@ After calling ``GD.begin()`` you can set the scanout registers for 800x480 like 
 
 There is a writeup here: http://excamera.com/sphinx/article-ili9488.html
 
+**How do I use GD with the [Sunflower Shield](https://www.kickstarter.com/projects/cowfishstudios/sunflower-shield-35-hmi-display-w-cap-touch-for-ar#)?**
+
+At the start of GD2.cpp change ``BOARD`` and ``CALIBRATION``:
+
+    #define BOARD         BOARD_SUNFLOWER   // board, from above
+    #define STORAGE       1                 // Want SD storage?
+    #define CALIBRATION   0                 // Want touchscreen calibration?
+
 **How do I change the select pin assignments?**
 
 To change the GPU select from pin 8, modify ``#define CS`` at the start of ``transports/wiring.h``
