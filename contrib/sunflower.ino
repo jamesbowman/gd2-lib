@@ -4,14 +4,14 @@
 
 void setup()
 {
-  pinMode(3, OUTPUT);
+  pinMode(3, OUTPUT);       // Make sure the thermocouple is disabled
   digitalWrite(3, HIGH);
 
-  GD.begin(~GD_STORAGE);
-  GD.cmd_romfont(31, 34);
+  GD.begin(~GD_STORAGE);    // Don't need microSD
+  GD.cmd_romfont(31, 34);   // Load a giant font into slot 31
 }
 
-// in 1/4 degrees C. See MAX31855 datasheet
+// temperature in 1/4 degrees C. See MAX31855 datasheet
 int read_temperature(bool &fault)
 {
   union {
@@ -26,8 +26,8 @@ int read_temperature(bool &fault)
   return t >> 2;
 }
 
-int prev_touching;
-int celsius;
+bool prev_touching;
+bool celsius;
 
 void loop()
 {
@@ -39,7 +39,7 @@ void loop()
   GD.resume();
 
   if (celsius)
-    temp = t4 / 4;
+    temp = (t4 + 2) / 4;
   else
     temp = t4 * 9 / (5 * 4) + 32;
   GD.get_inputs();
@@ -52,6 +52,6 @@ void loop()
   GD.finish();
 
   if (GD.inputs.touching && !prev_touching)
-    celsius ^= 1;
+    celsius = !celsius;
   prev_touching = GD.inputs.touching;
 }
