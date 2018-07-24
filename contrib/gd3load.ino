@@ -221,5 +221,5 @@ void setup()
 
 void loop()
 {
-  Serial.println(GD.rd16(REG_TOUCH_RAW_XY));
+  // Serial.println(GD.rd16(REG_TOUCH_RAW_XY));
 }
