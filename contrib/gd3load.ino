@@ -158,21 +158,68 @@ static void load_flash(uint8_t *config)
     GD.begin(0);
 }
 
+void demo_sketch()
+{
+  GD.begin(~GD_STORAGE);
+
+  GD.cmd_memset(0, 0x00, long(GD.w) * GD.h);     // clear the bitmap
+
+  GD.Clear();                                 // draw the bitmap
+
+  GD.ColorRGB(0x202030);
+  GD.cmd_text(GD.w / 2, GD.h / 2, 31, OPT_CENTER, "sketch demo");
+
+  GD.BitmapLayout(L8, GD.w, GD.h);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
+
+  GD.Begin(BITMAPS);
+  GD.ColorRGB(0xffffff);
+  GD.Vertex2ii(0, 0);
+  GD.swap();
+  GD.cmd_sketch(0, 0, GD.w, GD.h, 0, L8);     // start sketching
+  GD.finish();                                // flush all commands
+}
+
+void gd3load(uint8_t *config)
+{
+  uint8_t stage[128];
+  memcpy(stage, config, 128);
+
+  GDTR.begin0();
+  GDTR.begin1();
+  GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x80);
+  GD.copyram(config + 4, 124);
+
+  GD.Clear(); GD.swap();
+  GD.Clear(); GD.swap();
+  GD.Clear(); GD.swap();
+  GD.cmd_regwrite(REG_PWM_DUTY, 128);
+
+  GD.finish();
+
+
+  GD.w = GD.rd16(REG_HSIZE);
+  GD.h = GD.rd16(REG_VSIZE);
+  GD.self_calibrate();
+  GD.finish();
+
+  for (int i = 0; i < 24; i++)
+    stage[CALIBRATION_OFFSET + i] = GD.rd(REG_TOUCH_TRANSFORM_A + i);
+
+  i2c_begin();
+  ram_write(stage);
+  ramdump();
+
+  demo_sketch();
+}
 
 void setup()
 {
   Serial.begin(1000000);
-  Serial.println(__LINE__);
-  GDTR.begin0();
-  GDTR.begin1();
-  GDTR.__end();
-  Serial.println(__LINE__);
-
-  i2c_begin();
-  ram_write(GD3_43__init);
-  ramdump();
+  gd3load(GD3_7__init);
 }
 
 void loop()
 {
+  // Serial.println(GD.rd16(REG_TOUCH_RAW_XY));
 }

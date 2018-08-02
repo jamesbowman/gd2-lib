@@ -3,7 +3,11 @@
 
 #include <stdint.h>
 
+#if defined(WIN32)
+#include <windows.h>
+#else
 #define HANDLE int
+#endif
 
 typedef struct {
   HANDLE port;

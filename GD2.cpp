@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2017 by James Bowman <jamesb@excamera.com>
+ * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
  * Teensy 3.2 and ESP8266.
  *
@@ -21,10 +21,11 @@
 
 #define BOARD_FTDI_80x    0
 #define BOARD_GAMEDUINO23 1
+#define BOARD_SUNFLOWER   2
 
 #define BOARD         BOARD_GAMEDUINO23 // board, from above
 #define STORAGE       1                 // Want SD storage?
-#define CALIBRATION   1                 // Want touchscreen?
+#define CALIBRATION   1                 // Want touchscreen calibration?
 
 // FTDI boards do not have storage
 #if (BOARD == BOARD_FTDI_80x) || defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
@@ -538,6 +539,25 @@ begin1:
   GDTR.wr(REG_PCLK, 5);
 #endif
 
+#if (BOARD == BOARD_SUNFLOWER)
+  GDTR.wr32(REG_HSIZE, 320);
+  GDTR.wr32(REG_VSIZE, 240);
+  GDTR.wr32(REG_HCYCLE, 408);
+  GDTR.wr32(REG_HOFFSET, 70);
+  GDTR.wr32(REG_HSYNC0, 0);
+  GDTR.wr32(REG_HSYNC1, 10);
+  GDTR.wr32(REG_VCYCLE, 263);
+  GDTR.wr32(REG_VOFFSET, 13);
+  GDTR.wr32(REG_VSYNC0, 0);
+  GDTR.wr32(REG_VSYNC1, 2);
+  GDTR.wr32(REG_PCLK, 8);
+  GDTR.wr32(REG_PCLK_POL, 0);
+  GDTR.wr32(REG_CSPREAD, 1);
+  GDTR.wr32(REG_DITHER, 1);
+  GDTR.wr32(REG_ROTATE, 0);
+  GDTR.wr(REG_SWIZZLE, 2);
+#endif
+
   GDTR.wr(REG_PWM_DUTY, 0);
   GDTR.wr(REG_GPIO_DIR, 0x83);
   GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x80);
@@ -842,6 +862,11 @@ void GDClass::BitmapLayout(byte format, uint16_t linestride, uint16_t height) {
   b[2] = (7 & (linestride >> 7)) | (format << 3);
   b[3] = 7;
   cI(c);
+  if (ft8xx_model) {
+    b[0] = (((linestride >> 10) & 3) << 2) | ((height >> 9) & 3);
+    b[3] = 0x28;
+    cI(c);
+  }
 }
 void GDClass::BitmapSize(byte filter, byte wrapx, byte wrapy, uint16_t width, uint16_t height) {
   byte fxy = (filter << 2) | (wrapx << 1) | (wrapy);

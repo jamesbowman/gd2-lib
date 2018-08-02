@@ -1,6 +1,8 @@
 #ifndef CS
 #if defined(ESP8266)
 #define CS D8
+#elif (BOARD == BOARD_SUNFLOWER)
+#define CS 6
 #else
 #define CS 8
 #endif
@@ -17,6 +19,14 @@ private:
   byte model;
 public:
   void ios() {
+#if (BOARD == BOARD_SUNFLOWER)
+    pinMode(5, OUTPUT);
+    digitalWrite(5, LOW);
+    delay(1);
+    digitalWrite(5, HIGH);
+    delay(1);
+#endif
+
     pinMode(CS, OUTPUT);
     digitalWrite(CS, HIGH);
     pinMode(SD_PIN, OUTPUT);

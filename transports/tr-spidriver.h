@@ -9,7 +9,8 @@ class GDTransport {
 
 public:
   void begin0(void) {
-    spi_connect(&sd, "/dev/ttyUSB0");
+    char *port = getenv("PORT");
+    spi_connect(&sd, port ? port : "/dev/ttyUSB0");
 
     hostcmd(0x42);    // SLEEP
     hostcmd(0x61);    // CLKSEL default
@@ -159,6 +160,10 @@ public:
   }
   void stop() {} // end the SPI transaction
   void wr_n(uint32_t addr, byte *src, uint16_t n) {
-    assert(0);
+    __end();
+    __wstart(addr);
+    spi_write(&sd, (char*)src, n);
+    spi_unsel(&sd);
+    stream();
   }
 };
