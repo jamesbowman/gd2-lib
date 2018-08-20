@@ -1,9 +1,9 @@
 gd2-lib
 =======
 
-This is the source repository of the GD library - the software side of the Gameduino project. The installation library and instructions are at:
-
 [![Build Status](https://travis-ci.org/jamesbowman/gd2-lib.svg?branch=master)](https://travis-ci.org/jamesbowman/gd2-lib)
+
+This is the source repository of the GD library - the software side of the Gameduino project. The installation library and instructions are at:
 
 http://gameduino.com/code
 
