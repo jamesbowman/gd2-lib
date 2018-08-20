@@ -295,13 +295,15 @@ class sdcard {
     for (;;);
 #endif
 
-#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4)
+#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
 
 #if defined(ESP8266)
-  SPI.setFrequency(40000000L);
+    SPI.setFrequency(40000000L);
+#elif defined(ARDUINO_ARCH_STM32)
+    SPI.beginTransaction(SPISettings(18000000, MSBFIRST, SPI_MODE0));
 #endif
 
     type_code = rd(0x1be + 0x4);
@@ -728,7 +730,9 @@ public:
   void fetch512(byte *dst) {
 #if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266) || 1
 
-#if defined(ESP8266)
+#if defined(ARDUINO_ARCH_STM32)
+    SPI.read(dst, 512);
+#elif defined(ESP8266)
     SPI.transferBytes(NULL, dst, 512);
 #else
     // for (int i = 0; i < 512; i++) *dst++ = SPI.transfer(0xff);

@@ -1,6 +1,8 @@
 #ifndef CS
 #if defined(ESP8266)
 #define CS D8
+#elif defined(ARDUINO_ARCH_STM32)
+#define CS PB0
 #elif (BOARD == BOARD_SUNFLOWER)
 #define CS 6
 #else
@@ -36,10 +38,10 @@ public:
     ios();
 
     SPI.begin();
-#if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4)
+#if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4) || defined(ARDUINO_ARCH_STM32)
     SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
 #else
-#if !defined(__DUE__) && !defined(ESP8266)
+#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
@@ -73,7 +75,7 @@ public:
 
 #if 0
     // Test point: attempt to wake up FT8xx every 2 seconds
-    while (0) {
+    while (1) {
       hostcmd(0x00);
       delay(120);
       hostcmd(0x68);
@@ -142,6 +144,9 @@ public:
     }
     wp += n;
     freespace -= n;
+#if defined(ARDUINO_ARCH_STM32)
+    SPI.write(s, n);
+#else
     while (n > 8) {
       n -= 8;
       SPI.transfer(*s++);
@@ -155,6 +160,7 @@ public:
     }
     while (n--)
       SPI.transfer(*s++);
+#endif
   }
 
   void flush() {
@@ -241,7 +247,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
-#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4)
+#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
@@ -269,6 +275,8 @@ public:
     __wstart(addr);
 #if defined(ESP8266)
     SPI.writeBytes(src, n);
+#elif defined(ARDUINO_ARCH_STM32)
+    SPI.write(src, n);
 #else
     while (n--)
       SPI.transfer(*src++);

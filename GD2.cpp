@@ -15,6 +15,8 @@
 
 #if defined(ESP8266)
 #define SD_PIN        D9    // pin used for the microSD enable signal
+#elif defined(ARDUINO_ARCH_STM32)
+#define SD_PIN        PB1
 #else
 #define SD_PIN        9     // pin used for the microSD enable signal
 #endif
@@ -1431,6 +1433,13 @@ void GDClass::cmd32(uint32_t b) {
 void GDClass::finish(void) {
   GDTR.finish();
 }
+#if defined(ARDUINO_ARCH_STM32)
+void GDClass::get_accel(int &x, int &y, int &z) {
+  x = 0;
+  y = 0;
+  z = 0;
+}
+#else
 void GDClass::get_accel(int &x, int &y, int &z) {
   static int f[3];
 
@@ -1443,6 +1452,7 @@ void GDClass::get_accel(int &x, int &y, int &z) {
   y = f[1];
   z = f[0];
 }
+#endif
 void GDClass::get_inputs(void) {
   GDTR.finish();
   byte *bi = (byte*)&inputs;
