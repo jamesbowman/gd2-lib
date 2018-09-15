@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
- * Teensy 3.2 and ESP8266.
+ * Teensy 3.2, ESP8266 and ESP32.
  *
  */
 
@@ -15,6 +15,8 @@
 
 #if defined(ESP8266)
 #define SD_PIN        D9    // pin used for the microSD enable signal
+#elif defined(ESP32)
+#define SD_PIN        13
 #elif defined(ARDUINO_ARCH_STM32)
 #define SD_PIN        PB1
 #else
@@ -398,7 +400,7 @@ private:
     return GDTR.__rd16(REG_GPIO) & 1;
   }
 
-  void i2c_start(void) 
+  void i2c_start(void)
   {
     set_SDA(1);
     set_SCL(1);
@@ -406,7 +408,7 @@ private:
     set_SCL(0);
   }
 
-  void i2c_stop(void) 
+  void i2c_stop(void)
   {
     set_SDA(0);
     set_SCL(1);
@@ -518,7 +520,7 @@ void GDClass::tune(void)
 }
 
 void GDClass::begin(uint8_t options) {
-#if defined(ARDUINO) || defined(ESP8266) || defined(SPIDRIVER)
+#if defined(ARDUINO) || defined(ESP8266) || defined(ESP32) || defined(SPIDRIVER)
   GDTR.begin0();
 
   if (STORAGE && (options & GD_STORAGE)) {
@@ -825,7 +827,7 @@ void GDClass::cs(const char *s) {
   align(count + 1);
 }
 
-#if !defined(ESP8266)
+#if !defined(ESP8266) && !defined(ESP32)
 void GDClass::copy(const PROGMEM uint8_t *src, int count) {
 #else
 void GDClass::copy(const uint8_t *src, int count) {
@@ -1626,7 +1628,7 @@ void GDClass::textsize(int &w, int &h, int font, const char *s)
 #define RAM_SCREENSHOT       (ft8xx_model ? 0x3c2000UL : 0x1C2000UL) // Screenshot readout buffer
 
 #ifndef DUMPDEV
-void GDClass::dumpscreen(void)    
+void GDClass::dumpscreen(void)
 {
   {
     finish();

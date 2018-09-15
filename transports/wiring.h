@@ -1,6 +1,8 @@
 #ifndef CS
 #if defined(ESP8266)
 #define CS D8
+#elif  defined(ESP32)
+#define CS 12
 #elif defined(ARDUINO_ARCH_STM32)
 #define CS PB0
 #elif (BOARD == BOARD_SUNFLOWER)
@@ -10,7 +12,7 @@
 #endif
 #endif
 
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
 #define YIELD() yield()
 #else
 #define YIELD()
@@ -41,7 +43,7 @@ public:
 #if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4) || defined(ARDUINO_ARCH_STM32)
     SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
 #else
-#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32)
+#if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
@@ -96,7 +98,7 @@ public:
 
     // So that FT800,801      FT81x
     // model       0            1
-    ft8xx_model = __rd16(0x0c0000) >> 12;  
+    ft8xx_model = __rd16(0x0c0000) >> 12;
 
     wp = 0;
     freespace = 4096 - 4;
@@ -118,6 +120,9 @@ public:
 #if defined(ESP8266)
     // SPI.writeBytes((uint8_t*)&x, 4);
     SPI.write32(x, 0);
+#elif defined(ESP32)
+    // SPI.write32(x) has the wrong byte order.
+    SPI.writeBytes((uint8_t*)&x, 4);
 #else
     union {
       uint32_t c;
@@ -247,7 +252,7 @@ public:
       *dst++ = SPI.transfer(0);
     stream();
   }
-#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
+#if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
   void wr_n(uint32_t addr, byte *src, uint16_t n)
   {
     __end(); // stop streaming
@@ -273,7 +278,7 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
-#if defined(ESP8266)
+#if defined(ESP8266) || defined(ESP32)
     SPI.writeBytes(src, n);
 #elif defined(ARDUINO_ARCH_STM32)
     SPI.write(src, n);
@@ -313,7 +318,7 @@ public:
     digitalWrite(CS, LOW);
     SPI.transfer(addr >> 16);
     SPI.transfer(highByte(addr));
-    SPI.transfer(lowByte(addr));  
+    SPI.transfer(lowByte(addr));
   }
 
   static void __wstart(uint32_t addr) // start an SPI write transaction to addr
@@ -321,7 +326,7 @@ public:
     digitalWrite(CS, LOW);
     SPI.transfer(0x80 | (addr >> 16));
     SPI.transfer(highByte(addr));
-    SPI.transfer(lowByte(addr));  
+    SPI.transfer(lowByte(addr));
   }
 
   static void __end() // end the SPI transaction
