@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013-2018 by James Bowman <jamesb@excamera.com>
- * Gameduino 2/3 library for Arduino, Arduino Due, Teensy 3.2 and
- * ESP8266.
+ * Gameduino 2/3 library for Arduino, Arduino Due, Teensy 3.2,
+ * ESP8266 and ESP32.
  */
 
 #ifndef _GD2_H_INCLUDED
@@ -295,13 +295,15 @@ class sdcard {
     for (;;);
 #endif
 
-#if !defined(__DUE__) && !defined(ESP8266) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
+#if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
 
 #if defined(ESP8266)
     SPI.setFrequency(40000000L);
+#elif defined(ESP32)
+    SPI.setFrequency(25000000L);
 #elif defined(ARDUINO_ARCH_STM32)
     SPI.beginTransaction(SPISettings(18000000, MSBFIRST, SPI_MODE0));
 #endif
@@ -333,7 +335,7 @@ class sdcard {
       o_fat = o_partition + 512L * reserved_sectors;
       o_root = o_fat + (2 * 512L * sectors_per_fat);
       // data area starts with cluster 2, so offset it here
-      o_data = o_root + (max_root_dir_entries * 32L) - (2L * cluster_size); 
+      o_data = o_root + (max_root_dir_entries * 32L) - (2L * cluster_size);
     } else {
       uint32_t sectors_per_fat = rd4(o_partition + 0x24);
       root_dir_first_cluster = rd4(o_partition + 0x2c);
@@ -489,7 +491,7 @@ public:
   void polar(int &x, int &y, int16_t r, uint16_t th);
   uint16_t atan2(int16_t y, int16_t x);
 
-#if !defined(ESP8266)
+#if !defined(ESP8266) && !defined(ESP32)
   void copy(const PROGMEM uint8_t *src, int count);
 #else
   void copy(const uint8_t *src, int count);
@@ -728,11 +730,11 @@ public:
   }
 
   void fetch512(byte *dst) {
-#if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266) || 1
+#if defined(__DUE__) || defined(TEENSYDUINO) || defined(ESP8266) || defined(ESP32) || 1
 
 #if defined(ARDUINO_ARCH_STM32)
     SPI.read(dst, 512);
-#elif defined(ESP8266)
+#elif defined(ESP8266) || defined(ESP32)
     SPI.transferBytes(NULL, dst, 512);
 #else
     // for (int i = 0; i < 512; i++) *dst++ = SPI.transfer(0xff);
@@ -780,7 +782,7 @@ public:
     cluster = *(uint32_t*)&dst[i];
     nseq = 0;
     for (uint32_t c = cluster;
-         (i < 512) && *(uint32_t*)&dst[i] == c; 
+         (i < 512) && *(uint32_t*)&dst[i] == c;
          i += 4, c++)
       nseq++;
   }
@@ -1366,7 +1368,7 @@ public:
 class Dirsearch {
   struct dirent de;
   int index;
-  
+
 public:
   char name[13];
   void begin() {
