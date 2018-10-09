@@ -16,6 +16,8 @@ FAQ
 
 **How do I use GD with a 800x480 display?**
 
+If you're using the Gameduino 3 7" model, this is done for you by the Gameduino 3's configuration flash.
+If you're using another screen the setup procedure must be done explicitly.
 After calling ``GD.begin()`` you can set the scanout registers for 800x480 like this:
 
     GD.wr16(vc.REG_HCYCLE, 928);
