@@ -20,20 +20,20 @@ If you're using the Gameduino 3 7" model, this is done for you by the Gameduino 
 If you're using another screen the setup procedure must be done explicitly.
 After calling ``GD.begin()`` you can set the scanout registers for 800x480 like this:
 
-    GD.wr16(vc.REG_HCYCLE, 928);
-    GD.wr16(vc.REG_HOFFSET, 88);
-    GD.wr16(vc.REG_HSIZE, 800);
-    GD.wr16(vc.REG_HSYNC0, 0);
-    GD.wr16(vc.REG_HSYNC1, 48);
-    GD.wr16(vc.REG_VCYCLE, 525);
-    GD.wr16(vc.REG_VOFFSET, 32);
-    GD.wr16(vc.REG_VSIZE, 480);
-    GD.wr16(vc.REG_VSYNC0, 0);
-    GD.wr16(vc.REG_VSYNC1, 3);
-    GD.wr16(vc.REG_CSPREAD, 1);
-    GD.wr16(vc.REG_DITHER, 1);
-    GD.wr16(vc.REG_PCLK_POL, 0);
-    GD.wr16(vc.REG_PCLK, 4);
+    GD.wr16(REG_HCYCLE, 928);
+    GD.wr16(REG_HOFFSET, 88);
+    GD.wr16(REG_HSIZE, 800);
+    GD.wr16(REG_HSYNC0, 0);
+    GD.wr16(REG_HSYNC1, 48);
+    GD.wr16(REG_VCYCLE, 525);
+    GD.wr16(REG_VOFFSET, 32);
+    GD.wr16(REG_VSIZE, 480);
+    GD.wr16(REG_VSYNC0, 0);
+    GD.wr16(REG_VSYNC1, 3);
+    GD.wr16(REG_CSPREAD, 1);
+    GD.wr16(REG_DITHER, 1);
+    GD.wr16(REG_PCLK_POL, 0);
+    GD.wr16(REG_PCLK, 4);
 
 **How do I use GD with a 320x480 display?**
 
