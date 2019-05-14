@@ -18,6 +18,8 @@
 #define YIELD()
 #endif
 
+SPIClass *spi = NULL;
+
 class GDTransport {
 private:
   byte model;
@@ -39,12 +41,19 @@ public:
   void begin0() {
     ios();
 
-    SPI.begin();
+    // With custom SPI pins
+    //spi = new SPIClass(HSPI);
+    //spi->begin(14, 12, 13, 2);
+    
+    // With default SPI pins
+    spi = new SPIClass();
+    spi->begin();
+    
 #if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4) || defined(ARDUINO_ARCH_STM32)
-    SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
+    spi->beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
 #else
 #if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32)
-    SPI.setClockDivider(SPI_CLOCK_DIV2);
+    spi->setClockDivider(SPI_CLOCK_DIV2);
     SPSR = (1 << SPI2X);
 #endif
 #endif
@@ -71,7 +80,7 @@ public:
     // Test point: saturate SPI
     while (0) {
       digitalWrite(CS, LOW);
-      SPI.transfer(0x55);
+      spi->transfer(0x55);
       digitalWrite(CS, HIGH);
     }
 
@@ -83,12 +92,12 @@ public:
       hostcmd(0x68);
       delay(120);
       digitalWrite(CS, LOW);
-      Serial.println(SPI.transfer(0x10), HEX);
-      Serial.println(SPI.transfer(0x24), HEX);
-      Serial.println(SPI.transfer(0x00), HEX);
-      Serial.println(SPI.transfer(0xff), HEX);
-      Serial.println(SPI.transfer(0x00), HEX);
-      Serial.println(SPI.transfer(0x00), HEX);
+      Serial.println(spi->transfer(0x10), HEX);
+      Serial.println(spi->transfer(0x24), HEX);
+      Serial.println(spi->transfer(0x00), HEX);
+      Serial.println(spi->transfer(0xff), HEX);
+      Serial.println(spi->transfer(0x00), HEX);
+      Serial.println(spi->transfer(0x00), HEX);
       Serial.println();
 
       digitalWrite(CS, HIGH);
@@ -118,21 +127,21 @@ public:
     wp += 4;
     freespace -= 4;
 #if defined(ESP8266)
-    // SPI.writeBytes((uint8_t*)&x, 4);
-    SPI.write32(x, 0);
+    // spi->writeBytes((uint8_t*)&x, 4);
+    spi->write32(x, 0);
 #elif defined(ESP32)
-    // SPI.write32(x) has the wrong byte order.
-    SPI.writeBytes((uint8_t*)&x, 4);
+    // spi->write32(x) has the wrong byte order.
+    spi->writeBytes((uint8_t*)&x, 4);
 #else
     union {
       uint32_t c;
       uint8_t b[4];
     };
     c = x;
-    SPI.transfer(b[0]);
-    SPI.transfer(b[1]);
-    SPI.transfer(b[2]);
-    SPI.transfer(b[3]);
+    spi->transfer(b[0]);
+    spi->transfer(b[1]);
+    spi->transfer(b[2]);
+    spi->transfer(b[3]);
 #endif
   }
   void cmdbyte(byte x) {
@@ -141,7 +150,7 @@ public:
     }
     wp++;
     freespace--;
-    SPI.transfer(x);
+    spi->transfer(x);
   }
   void cmd_n(byte *s, uint16_t n) {
     if (freespace < n) {
@@ -150,21 +159,21 @@ public:
     wp += n;
     freespace -= n;
 #if defined(ARDUINO_ARCH_STM32)
-    SPI.write(s, n);
+    spi->write(s, n);
 #else
     while (n > 8) {
       n -= 8;
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
-      SPI.transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
+      spi->transfer(*s++);
     }
     while (n--)
-      SPI.transfer(*s++);
+      spi->transfer(*s++);
 #endif
   }
 
@@ -192,8 +201,8 @@ public:
   {
     __end(); // stop streaming
     __start(addr);
-    SPI.transfer(0);  // dummy
-    byte r = SPI.transfer(0);
+    spi->transfer(0);  // dummy
+    byte r = spi->transfer(0);
     stream();
     return r;
   }
@@ -202,7 +211,7 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
-    SPI.transfer(v);
+    spi->transfer(v);
     stream();
   }
 
@@ -211,9 +220,9 @@ public:
     uint16_t r = 0;
     __end(); // stop streaming
     __start(addr);
-    SPI.transfer(0);
-    r = SPI.transfer(0);
-    r |= (SPI.transfer(0) << 8);
+    spi->transfer(0);
+    r = spi->transfer(0);
+    r |= (spi->transfer(0) << 8);
     stream();
     return r;
   }
@@ -222,8 +231,8 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
-    SPI.transfer(v);
-    SPI.transfer(v >> 8);
+    spi->transfer(v);
+    spi->transfer(v >> 8);
     stream();
   }
 
@@ -231,15 +240,15 @@ public:
   {
     __end(); // stop streaming
     __start(addr);
-    SPI.transfer(0);
+    spi->transfer(0);
     union {
       uint32_t c;
       uint8_t b[4];
     };
-    b[0] = SPI.transfer(0);
-    b[1] = SPI.transfer(0);
-    b[2] = SPI.transfer(0);
-    b[3] = SPI.transfer(0);
+    b[0] = spi->transfer(0);
+    b[1] = spi->transfer(0);
+    b[2] = spi->transfer(0);
+    b[3] = spi->transfer(0);
     stream();
     return c;
   }
@@ -247,9 +256,9 @@ public:
   {
     __end(); // stop streaming
     __start(addr);
-    SPI.transfer(0);
+    spi->transfer(0);
     while (n--)
-      *dst++ = SPI.transfer(0);
+      *dst++ = spi->transfer(0);
     stream();
   }
 #if defined(ARDUINO) && !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
@@ -279,12 +288,12 @@ public:
     __end(); // stop streaming
     __wstart(addr);
 #if defined(ESP8266) || defined(ESP32)
-    SPI.writeBytes(src, n);
+    spi->writeBytes(src, n);
 #elif defined(ARDUINO_ARCH_STM32)
-    SPI.write(src, n);
+    spi->write(src, n);
 #else
     while (n--)
-      SPI.transfer(*src++);
+      spi->transfer(*src++);
 #endif
     stream();
   }
@@ -294,10 +303,10 @@ public:
   {
     __end(); // stop streaming
     __wstart(addr);
-    SPI.transfer(v);
-    SPI.transfer(v >> 8);
-    SPI.transfer(v >> 16);
-    SPI.transfer(v >> 24);
+    spi->transfer(v);
+    spi->transfer(v >> 8);
+    spi->transfer(v >> 16);
+    spi->transfer(v >> 24);
     stream();
   }
 
@@ -316,17 +325,17 @@ public:
   static void __start(uint32_t addr) // start an SPI transaction to addr
   {
     digitalWrite(CS, LOW);
-    SPI.transfer(addr >> 16);
-    SPI.transfer(highByte(addr));
-    SPI.transfer(lowByte(addr));
+    spi->transfer(addr >> 16);
+    spi->transfer(highByte(addr));
+    spi->transfer(lowByte(addr));
   }
 
   static void __wstart(uint32_t addr) // start an SPI write transaction to addr
   {
     digitalWrite(CS, LOW);
-    SPI.transfer(0x80 | (addr >> 16));
-    SPI.transfer(highByte(addr));
-    SPI.transfer(lowByte(addr));
+    spi->transfer(0x80 | (addr >> 16));
+    spi->transfer(highByte(addr));
+    spi->transfer(lowByte(addr));
   }
 
   static void __end() // end the SPI transaction
@@ -352,9 +361,9 @@ public:
     unsigned int r;
 
     __start(addr);
-    SPI.transfer(0);  // dummy
-    r = SPI.transfer(0);
-    r |= (SPI.transfer(0) << 8);
+    spi->transfer(0);  // dummy
+    r = spi->transfer(0);
+    r |= (spi->transfer(0) << 8);
     __end();
     return r;
   }
@@ -362,17 +371,17 @@ public:
   static void __wr16(uint32_t addr, unsigned int v)
   {
     __wstart(addr);
-    SPI.transfer(lowByte(v));
-    SPI.transfer(highByte(v));
+    spi->transfer(lowByte(v));
+    spi->transfer(highByte(v));
     __end();
   }
 
   static void hostcmd(byte a)
   {
     digitalWrite(CS, LOW);
-    SPI.transfer(a);
-    SPI.transfer(0x00);
-    SPI.transfer(0x00);
+    spi->transfer(a);
+    spi->transfer(0x00);
+    spi->transfer(0x00);
     digitalWrite(CS, HIGH);
   }
 

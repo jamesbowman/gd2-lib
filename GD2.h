@@ -13,6 +13,7 @@
 #include "wiring.h"
 #endif
 
+#include "SPI.h"
 #include "Arduino.h"
 #include <stdarg.h>
 
