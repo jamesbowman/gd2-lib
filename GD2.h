@@ -20,13 +20,51 @@
 #define F8(x)           (int((x) * 256L))
 #define F16(x)          ((int32_t)((x) * 65536L))
 
-#define GD_CALIBRATE    1
-#define GD_TRIM         2
-#define GD_STORAGE      4
+                            // Options for GD.begin():
+#define GD_CALIBRATE    1   // enable touchscreen calibration at startup
+#define GD_TRIM         2   // trim the built-in oscillator
+#define GD_STORAGE      4   // initialize attached microSD
+#define GD_NOBACKLIGHT  8   // don't turn on the backlight
 
 #ifdef __SAM3X8E__
 #define __DUE__ 1
 #endif
+
+#if defined(ESP8266)
+#define SD_PIN        D9    // pin used for the microSD enable signal
+#elif defined(ARDUINO_ARCH_STM32)
+#define SD_PIN        PB1
+#else
+#define SD_PIN        9     // pin used for the microSD enable signal
+#endif
+
+#define BOARD_FTDI_80x    0
+#define BOARD_GAMEDUINO23 1
+#define BOARD_SUNFLOWER   2
+#define BOARD_OTHER       3
+
+#define BOARD         BOARD_GAMEDUINO23 // board, from above
+#define STORAGE       1                 // Want SD storage?
+#define CALIBRATION   1                 // Want touchscreen calibration?
+
+// FTDI boards do not have storage
+#if (BOARD == BOARD_FTDI_80x) || defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
+#undef STORAGE
+#define STORAGE 0
+#endif
+
+#ifndef DEFAULT_CS
+#if defined(ESP8266)
+#define DEFAULT_CS D8
+#elif defined(ARDUINO_ARCH_STM32)
+#define DEFAULT_CS PB0
+#elif (BOARD == BOARD_SUNFLOWER)
+#define DEFAULT_CS 6
+#else
+#define DEFAULT_CS 8
+#endif
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////
 // Decide if we want to compile in SDcard support
@@ -351,6 +389,7 @@ class sdcard {
     ;
   }
   void cmd17(uint32_t off) {
+    REPORT(off);
     if (ccs)
       cmd(17, off >> 9);
     else
@@ -479,8 +518,9 @@ class GDClass {
 public:
   int w, h;
   uint32_t loadptr;
+  byte vxf;   // Vertex Format
 
-  void begin(uint8_t options = (GD_CALIBRATE | GD_TRIM | GD_STORAGE));
+  void begin(uint8_t options = (GD_CALIBRATE | GD_TRIM | GD_STORAGE), int cs = DEFAULT_CS, int sdcs = SD_PIN);
 
   uint16_t random();
   uint16_t random(uint16_t n);
@@ -635,6 +675,13 @@ public:
   void cmd_videostart();
   void cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t h);
   void cmd_sync();
+  void cmd_flasherase();
+  void cmd_flashwrite(uint32_t dest, uint32_t num);
+  void cmd_flashupdate(uint32_t dst, uint32_t src, uint32_t n);
+  void cmd_flashread(uint32_t dst, uint32_t src, uint32_t n);
+  void cmd_flashdetach();
+  void cmd_flashattach();
+  uint32_t cmd_flashfast(uint32_t &r);
 
   byte rd(uint32_t addr);
   void wr(uint32_t addr, uint8_t v);
@@ -643,6 +690,7 @@ public:
   uint32_t rd32(uint32_t addr);
   void wr32(uint32_t addr, uint32_t v);
   void wr_n(uint32_t addr, byte *src, uint32_t n);
+  void rd_n(byte *dst, uint32_t addr, uint32_t n);
 
   void cmd32(uint32_t b);
 
@@ -677,6 +725,7 @@ private:
   uint32_t measure_freq(void);
 
   uint32_t rseed;
+  byte cprim;       // current primitive
 };
 
 extern GDClass GD;
@@ -693,7 +742,6 @@ public:
     dos83(dosname, filename);
     do {
       GD.SD.rdn((byte*)&de, GD.SD.o_root + i * 32, sizeof(de));
-      // Serial.println(de.name);
       if (0 == memcmp(de.name, dosname, 11)) {
         begin(de);
         return 1;
@@ -1084,6 +1132,11 @@ typedef struct {
 #define REG_MEDIAFIFO_READ                   0x309014UL
 #define REG_MEDIAFIFO_WRITE                  0x309018UL
 
+// FT815 only registers
+#define REG_FLASH_SIZE                       0x00309024 
+#define REG_FLASH_STATUS                     0x003025f0 
+#define REG_ADAPTIVE_FRAMERATE               0x0030257c
+
 #define VERTEX2II(x, y, handle, cell) \
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))
 
@@ -1095,9 +1148,9 @@ class Poly {
     byte n;
     void restart() {
       n = 0;
-      x0 = 16 * 480;
+      x0 = (1 << GD.vxf) * GD.w;
       x1 = 0;
-      y0 = 16 * 272;
+      y0 = (1 << GD.vxf) * GD.h;
       y1 = 0;
     }
     void perim() {
@@ -1114,10 +1167,10 @@ class Poly {
       GD.StencilFunc(ALWAYS, 255, 255);
     }
     void v(int _x, int _y) {
-      x0 = min(x0, _x >> 4);
-      x1 = max(x1, _x >> 4);
-      y0 = min(y0, _y >> 4);
-      y1 = max(y1, _y >> 4);
+      x0 = min(x0, _x >> GD.vxf);
+      x1 = max(x1, _x >> GD.vxf);
+      y0 = min(y0, _y >> GD.vxf);
+      y1 = max(y1, _y >> GD.vxf);
       x[n] = _x;
       y[n] = _y;
       n++;
@@ -1125,8 +1178,8 @@ class Poly {
     void paint() {
       x0 = max(0, x0);
       y0 = max(0, y0);
-      x1 = min(16 * 480, x1);
-      y1 = min(16 * 272, y1);
+      x1 = min((1 << GD.vxf) * GD.w, x1);
+      y1 = min((1 << GD.vxf) * GD.h, y1);
       GD.ScissorXY(x0, y0);
       GD.ScissorSize(x1 - x0 + 1, y1 - y0 + 1);
       GD.Begin(EDGE_STRIP_B);
@@ -1138,7 +1191,7 @@ class Poly {
 
       GD.Begin(EDGE_STRIP_R);
       GD.Vertex2f(0, 0);
-      GD.Vertex2f(0, PIXELS(GD.h));
+      GD.Vertex2f(0, (1 << GD.vxf) * GD.h);
     }
     void draw() {
       paint();

@@ -20,9 +20,10 @@
 
 class GDTransport {
 private:
+  byte cs;
   byte model;
 public:
-  void ios() {
+  void begin0(int _cs = CS) {
 #if (BOARD == BOARD_SUNFLOWER)
     pinMode(5, OUTPUT);
     digitalWrite(5, LOW);
@@ -31,17 +32,14 @@ public:
     delay(1);
 #endif
 
-    pinMode(CS, OUTPUT);
-    digitalWrite(CS, HIGH);
-    pinMode(SD_PIN, OUTPUT);
-    digitalWrite(SD_PIN, HIGH);
-  }
-  void begin0() {
-    ios();
+    cs = _cs;
+
+    pinMode(cs, OUTPUT);
+    digitalWrite(cs, HIGH);
 
     SPI.begin();
 #if defined(TEENSYDUINO) || defined(ARDUINO_ARCH_STM32L4) || defined(ARDUINO_ARCH_STM32)
-    SPI.beginTransaction(SPISettings(3000000, MSBFIRST, SPI_MODE0));
+    SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
 #else
 #if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
@@ -57,7 +55,7 @@ public:
 #else
     hostcmd(0x48);    // CLKINT
 #endif
-    hostcmd(0x49);    // PD_ROMS all up
+//  hostcmd(0x49);    // PD_ROMS all up
     hostcmd(0x68);    // RST_PULSE
   }
   void begin1() {
@@ -70,9 +68,9 @@ public:
 
     // Test point: saturate SPI
     while (0) {
-      digitalWrite(CS, LOW);
+      digitalWrite(cs, LOW);
       SPI.transfer(0x55);
-      digitalWrite(CS, HIGH);
+      digitalWrite(cs, HIGH);
     }
 
 #if 0
@@ -82,7 +80,7 @@ public:
       delay(120);
       hostcmd(0x68);
       delay(120);
-      digitalWrite(CS, LOW);
+      digitalWrite(cs, LOW);
       Serial.println(SPI.transfer(0x10), HEX);
       Serial.println(SPI.transfer(0x24), HEX);
       Serial.println(SPI.transfer(0x00), HEX);
@@ -91,14 +89,22 @@ public:
       Serial.println(SPI.transfer(0x00), HEX);
       Serial.println();
 
-      digitalWrite(CS, HIGH);
+      digitalWrite(cs, HIGH);
       delay(2000);
     }
 #endif
 
-    // So that FT800,801      FT81x
-    // model       0            1
-    ft8xx_model = __rd16(0x0c0000) >> 12;
+    // So that FT800,801      FT810-3   FT815,6
+    // model       0            1         2
+    switch (__rd16(0x0c0000) >> 8) {
+    case 0x10:
+    case 0x11:
+    case 0x12:
+    case 0x13: ft8xx_model = 1; break;
+    case 0x15:
+    case 0x16: ft8xx_model = 2; break;
+    default:   ft8xx_model = 0; break;
+    }
 
     wp = 0;
     freespace = 4096 - 4;
@@ -313,25 +319,25 @@ public:
     stream();
   }
 
-  static void __start(uint32_t addr) // start an SPI transaction to addr
+  void __start(uint32_t addr) // start an SPI transaction to addr
   {
-    digitalWrite(CS, LOW);
+    digitalWrite(cs, LOW);
     SPI.transfer(addr >> 16);
     SPI.transfer(highByte(addr));
     SPI.transfer(lowByte(addr));
   }
 
-  static void __wstart(uint32_t addr) // start an SPI write transaction to addr
+  void __wstart(uint32_t addr) // start an SPI write transaction to addr
   {
-    digitalWrite(CS, LOW);
+    digitalWrite(cs, LOW);
     SPI.transfer(0x80 | (addr >> 16));
     SPI.transfer(highByte(addr));
     SPI.transfer(lowByte(addr));
   }
 
-  static void __end() // end the SPI transaction
+  void __end() // end the SPI transaction
   {
-    digitalWrite(CS, HIGH);
+    digitalWrite(cs, HIGH);
   }
 
   void stop() // end the SPI transaction
@@ -347,7 +353,7 @@ public:
     __wstart(RAM_CMD + (wp & 0xfff));
   }
 
-  static unsigned int __rd16(uint32_t addr)
+  unsigned int __rd16(uint32_t addr)
   {
     unsigned int r;
 
@@ -359,7 +365,7 @@ public:
     return r;
   }
 
-  static void __wr16(uint32_t addr, unsigned int v)
+  void __wr16(uint32_t addr, unsigned int v)
   {
     __wstart(addr);
     SPI.transfer(lowByte(v));
@@ -367,13 +373,13 @@ public:
     __end();
   }
 
-  static void hostcmd(byte a)
+  void hostcmd(byte a)
   {
-    digitalWrite(CS, LOW);
+    digitalWrite(cs, LOW);
     SPI.transfer(a);
     SPI.transfer(0x00);
     SPI.transfer(0x00);
-    digitalWrite(CS, HIGH);
+    digitalWrite(cs, HIGH);
   }
 
   void getfree(uint16_t n)

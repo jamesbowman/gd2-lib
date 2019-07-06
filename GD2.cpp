@@ -1,4 +1,5 @@
 /*
+}
  * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
  * Teensy 3.2, ESP8266 and ESP32.
@@ -12,31 +13,6 @@
 #endif
 #define VERBOSE       0
 #include <GD2.h>
-
-#if defined(ESP8266)
-#define SD_PIN        D9    // pin used for the microSD enable signal
-#elif defined(ESP32)
-#define SD_PIN        13
-#elif defined(ARDUINO_ARCH_STM32)
-#define SD_PIN        PB1
-#else
-#define SD_PIN        9     // pin used for the microSD enable signal
-#endif
-
-#define BOARD_FTDI_80x    0
-#define BOARD_GAMEDUINO23 1
-#define BOARD_SUNFLOWER   2
-
-#define BOARD         BOARD_GAMEDUINO23 // board, from above
-#define STORAGE       1                 // Want SD storage?
-#define CALIBRATION   1                 // Want touchscreen calibration?
-
-// FTDI boards do not have storage
-#if (BOARD == BOARD_FTDI_80x) || defined(RASPBERRY_PI) || defined(DUMPDEV) || defined(SPIDRIVER)
-#undef STORAGE
-#define STORAGE 0
-#endif
-
 
 #ifdef DUMPDEV
 #include <assert.h>
@@ -170,7 +146,6 @@ void xy::rotate(int angle)
 void Bitmap::fromtext(int font, const char* s)
 {
   GD.textsize(size.x, size.y, font, s);
-
   int pclk = GD.rd16(REG_PCLK);
   int vsize = GD.rd16(REG_VSIZE);
   int hsize = GD.rd16(REG_HSIZE);
@@ -185,8 +160,8 @@ void Bitmap::fromtext(int font, const char* s)
   GD.Clear();
   GD.BlendFunc(1,1);
   GD.cmd_text(0, 0, font, 0, s);
-
   GD.swap();
+
   GD.loadptr = (GD.loadptr + 1) & ~1;
   GD.cmd_snapshot(GD.loadptr);
   GD.finish();
@@ -194,7 +169,6 @@ void Bitmap::fromtext(int font, const char* s)
   GD.wr16(REG_HSIZE, hsize);
   GD.wr16(REG_VSIZE, vsize);
   GD.wr16(REG_PCLK, pclk);
-
   defaults(ARGB4);
 }
 
@@ -212,25 +186,34 @@ void Bitmap::fromfile(const char* filename, int format)
 }
 
 static const PROGMEM uint8_t bpltab[] = {
-/* 0  ARGB1555  */ 0,
-/* 1  L1        */ 4,
-/* 2  L4        */ 2,
-/* 3  L8        */ 1,
-/* 4  RGB332    */ 1,
-/* 5  ARGB2     */ 1,
-/* 6  ARGB4     */ 0,
-/* 7  RGB565    */ 0,
-/* 8  PALETTED  */ 1,
-/* 9  TEXT8X8   */ 0,
-/* 10 TEXTVGA   */ 0,
-/* 11 BARGRAPH  */ 1,
-/* 12           */ 0,
-/* 13           */ 0,
-/* 14           */ 0,
-/* 15           */ 0,
-/* 16           */ 0,
-/* 17 L2        */ 3
+/* 0  ARGB1555  */ 0xff,
+/* 1  L1        */ 3,
+/* 2  L4        */ 1,
+/* 3  L8        */ 0,
+/* 4  RGB332    */ 0,
+/* 5  ARGB2     */ 0,
+/* 6  ARGB4     */ 0xff,
+/* 7  RGB565    */ 0xff,
+/* 8  PALETTED  */ 0,
+/* 9  TEXT8X8   */ 0xff,
+/* 10 TEXTVGA   */ 0xff,
+/* 11 BARGRAPH  */ 0,
+/* 12           */ 0xff,
+/* 13           */ 0xff,
+/* 14           */ 0xff,
+/* 15           */ 0xff,
+/* 16           */ 0xff,
+/* 17 L2        */ 2
 };
+
+static uint16_t stride(uint8_t format, uint16_t w)
+{
+  uint8_t k = pgm_read_byte_near(bpltab + format);
+  if (k == 0xff)
+    return w << 1;
+  uint16_t r = (1 << k) - 1;
+  return (w + r) >> k;
+}
 
 void Bitmap::defaults(uint8_t f)
 {
@@ -239,14 +222,13 @@ void Bitmap::defaults(uint8_t f)
   handle = -1;
   center.x = size.x / 2;
   center.y = size.y / 2;
-  GD.loadptr += (long)((size.x << 1) >> pgm_read_byte_near(bpltab + f)) * size.y;
+  GD.loadptr += stride(format, size.x) * size.y;
 }
 
 void Bitmap::setup(void)
 {
   GD.BitmapSource(source);
-  int bpl = (size.x << 1) >> pgm_read_byte_near(bpltab + format);
-  GD.BitmapLayout(format, bpl, size.y);
+  GD.BitmapLayout(format, stride(format, size.x), size.y);
   GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
 }
 
@@ -285,7 +267,7 @@ void Bitmap::draw(int x, int y, int16_t angle)
 {
   xy pos;
   pos.set(x, y);
-  pos <<= 4;
+  pos <<= GD.vxf;
   draw(pos, angle);
 }
 
@@ -302,7 +284,7 @@ void Bitmap::draw(const xy &p, int16_t angle)
 
   if (angle == 0) {
     xy c4 = center;
-    c4 <<= 4;
+    c4 <<= GD.vxf;
     pos -= c4;
     GD.BitmapSize(NEAREST, BORDER, BORDER, size.x, size.y);
     GD.Vertex2f(pos.x, pos.y);
@@ -317,7 +299,7 @@ void Bitmap::draw(const xy &p, int16_t angle)
     for (int i = 0; i < 4; i++) {
       xy &c = corners[i];
       c -= center;
-      c <<= 4;
+      c <<= GD.vxf;
       c.rotate(angle);
       c += pos;
     }
@@ -335,13 +317,14 @@ void Bitmap::draw(const xy &p, int16_t angle)
     xy span = bottomright;
     span -= topleft;
     GD.BitmapSize(BILINEAR, BORDER, BORDER,
-                  (span.x + 15) >> 4, (span.y + 15) >> 4);
+                  (span.x + 15) >> GD.vxf, (span.y + 15) >> GD.vxf);
 
     // Set up the transform and draw the bitmap
     pos -= topleft;
     GD.SaveContext();
     GD.cmd_loadidentity();
-    GD.cmd_translate((int32_t)pos.x << 12, (int32_t)pos.y << 12);
+    int s = 16 - GD.vxf;
+    GD.cmd_translate((int32_t)pos.x << s, (int32_t)pos.y << s);
     GD.cmd_rotate(angle);
     GD.cmd_translate(F16(-center.x), F16(-center.y));
     GD.cmd_setmatrix();
@@ -519,23 +502,39 @@ void GDClass::tune(void)
   GDTR.wr32(REG_FREQUENCY, f);
 }
 
-void GDClass::begin(uint8_t options) {
+void GDClass::begin(uint8_t options, int cs, int sdcs) {
 #if defined(ARDUINO) || defined(ESP8266) || defined(ESP32) || defined(SPIDRIVER)
-  GDTR.begin0();
-
-  if (STORAGE && (options & GD_STORAGE)) {
-    GDTR.ios();
-    SD.begin(SD_PIN);
-  }
+  GDTR.begin0(cs);
+  if (STORAGE && (options & GD_STORAGE))
+    SD.begin(sdcs);
 #endif
 
   byte external_crystal = 0;
 begin1:
   GDTR.begin1();
 
+  Clear();
+  swap();
+  finish();
+
 #if 0
+  Serial.print("GD options:");
+  Serial.println(options, DEC);
+  Serial.print("cs:");
+  Serial.println(cs, DEC);
+  Serial.print("sdcs:");
+  Serial.println(sdcs, DEC);
+  Serial.print("BOARD");
+  Serial.println(BOARD, DEC);
+
   Serial.println("ID REGISTER:");
-  Serial.println(GDTR.rd(REG_ID), HEX);
+  Serial.println(GDTR.rd32(REG_ID), HEX);
+  Serial.println("READ PTR:");
+  Serial.println(GDTR.rd32(REG_CMD_READ), HEX);
+  Serial.println("WRITE PTR:");
+  Serial.println(GDTR.rd32(REG_CMD_WRITE), HEX);
+  Serial.println("CMDB SPACE:");
+  Serial.println(GDTR.rd32(REG_CMDB_SPACE), HEX);
 #endif
 
 #if (BOARD == BOARD_FTDI_80x)
@@ -563,30 +562,61 @@ begin1:
 #endif
 
   GDTR.wr(REG_PWM_DUTY, 0);
+#if BOARD != BOARD_OTHER
   GDTR.wr(REG_GPIO_DIR, 0x83);
   GDTR.wr(REG_GPIO, GDTR.rd(REG_GPIO) | 0x80);
+#endif
 
 #if (BOARD == BOARD_GAMEDUINO23)
-  ConfigRam cr;
-  byte v8[128] = {0};
-  cr.read(v8);
-  if ((v8[1] == 0xff) && (v8[2] == 0x01)) {
-    options &= ~(GD_TRIM | GD_CALIBRATE);
-    if (!external_crystal && (v8[3] & 2)) {
-      GDTR.external_crystal();
-      external_crystal = 1;
-      goto begin1;
-    }
-    copyram(v8 + 4, 124);
+  Clear(); swap();
+  switch (ft8xx_model) {
+
+  case 1: { // GD3 (810-series) have config in attached I2C "ConfigRam"
+    ConfigRam cr;
+    byte v8[128] = {0};
+    cr.read(v8);
+    if ((v8[1] == 0xff) && (v8[2] == 0x01)) {
+      options &= ~(GD_TRIM | GD_CALIBRATE);
+      if (!external_crystal && (v8[3] & 2)) {
+        GDTR.external_crystal();
+        external_crystal = 1;
+        goto begin1;
+      }
+      copyram(v8 + 4, 124);
+      break;
+    } else
+      goto fallback;
+  }
+
+  case 2: { // GD3X (815-series) have config in flash
+    uint32_t fr;
+    cmd_flashfast(fr);
     finish();
-  } else {
-    GDTR.wr(REG_PCLK_POL, 1);
-    GDTR.wr(REG_PCLK, 5);
-    GDTR.wr(REG_ROTATE, 1);
-    GDTR.wr(REG_SWIZZLE, 3);
+    if (rd32(fr) == 0) {
+      uint32_t a = 0xff000UL;
+      cmd_flashread(a, 0x1000, 0x1000);
+      GD.finish();
+      if (rd32(a + 0xffc) == 0x7C6A0100UL) {
+        for (int i = 0; i < 128; i++)
+          cI(rd32(a + 4 * i));
+        options &= ~(GD_TRIM | GD_CALIBRATE);
+        break;
+      }
+    }
+  }
+
+  default:
+  fallback:
+    cmd_regwrite(REG_OUTBITS, 0666);
+    cmd_regwrite(REG_DITHER, 1);
+    cmd_regwrite(REG_ROTATE, 1);
+    cmd_regwrite(REG_SWIZZLE, 3);
+    cmd_regwrite(REG_PCLK_POL, 1);
+    cmd_regwrite(REG_PCLK, 5);
   }
 #endif
 
+  GD.finish();
   w = GDTR.rd16(REG_HSIZE);
   h = GDTR.rd16(REG_VSIZE);
   loadptr = 0;
@@ -661,6 +691,8 @@ begin1:
   GDTR.wr16(REG_TOUCH_RZTHRESH, 1200);
 
   rseed = 0x77777777;
+  cprim = 0xff;
+  vxf = 4;
 
   if ((BOARD == BOARD_GAMEDUINO23) && (options & GD_TRIM)) {
     tune();
@@ -850,7 +882,10 @@ void GDClass::AlphaFunc(byte func, byte ref) {
   cI((9UL << 24) | ((func & 7L) << 8) | ((ref & 255L) << 0));
 }
 void GDClass::Begin(byte prim) {
-  cI((31UL << 24) | prim);
+  // if (prim != cprim) {
+    cI((31UL << 24) | prim);
+    cprim = prim;
+  // }
 }
 void GDClass::BitmapHandle(byte handle) {
   cI((5UL << 24) | handle);
@@ -891,7 +926,7 @@ void GDClass::BitmapSize(byte filter, byte wrapx, byte wrapy, uint16_t width, ui
   }
 }
 void GDClass::BitmapSource(uint32_t addr) {
-  cI((1UL << 24) | ((addr & 1048575L) << 0));
+  cI((1UL << 24) | ((addr & 0xffffffL) << 0));
 }
 void GDClass::BitmapTransformA(int32_t a) {
   cI((21UL << 24) | ((a & 131071L) << 0));
@@ -1060,6 +1095,7 @@ void GDClass::cmd_append(uint32_t ptr, uint32_t num) {
   cFFFFFF(0x1e);
   cI(ptr);
   cI(num);
+  cprim = 0xff;
 }
 void GDClass::cmd_bgcolor(uint32_t c) {
   cFFFFFF(0x09);
@@ -1074,6 +1110,7 @@ void GDClass::cmd_button(int16_t x, int16_t y, uint16_t w, uint16_t h, byte font
   ch(font);
   cH(options);
   cs(s);
+  cprim = 0xff;
 }
 void GDClass::cmd_calibrate(void) {
   cFFFFFF(0x15);
@@ -1089,6 +1126,7 @@ void GDClass::cmd_clock(int16_t x, int16_t y, int16_t r, uint16_t options, uint1
   cH(m);
   cH(s);
   cH(ms);
+  cprim = 0xff;
 }
 void GDClass::cmd_coldstart(void) {
   cFFFFFF(0x32);
@@ -1101,9 +1139,11 @@ void GDClass::cmd_dial(int16_t x, int16_t y, int16_t r, uint16_t options, uint16
   cH(options);
   cH(val);
   cH(0);
+  cprim = 0xff;
 }
 void GDClass::cmd_dlstart(void) {
   cFFFFFF(0x00);
+  cprim = 0xff;
 }
 void GDClass::cmd_fgcolor(uint32_t c) {
   cFFFFFF(0x0a);
@@ -1119,6 +1159,7 @@ void GDClass::cmd_gauge(int16_t x, int16_t y, int16_t r, uint16_t options, uint1
   cH(minor);
   cH(val);
   cH(range);
+  cprim = 0xff;
 }
 void GDClass::cmd_getmatrix(void) {
   cFFFFFF(0x33);
@@ -1154,6 +1195,7 @@ void GDClass::cmd_gradient(int16_t x0, int16_t y0, uint32_t rgb0, int16_t x1, in
   ch(x1);
   ch(y1);
   cI(rgb1);
+  cprim = 0xff;
 }
 void GDClass::cmd_inflate(uint32_t ptr) {
   cFFFFFF(0x22);
@@ -1172,6 +1214,7 @@ void GDClass::cmd_keys(int16_t x, int16_t y, int16_t w, int16_t h, byte font, ui
   ch(font);
   cH(options);
   cs(s);
+  cprim = 0xff;
 }
 void GDClass::cmd_loadidentity(void) {
   cFFFFFF(0x26);
@@ -1219,6 +1262,7 @@ void GDClass::cmd_number(int16_t x, int16_t y, byte font, uint16_t options, uint
   ch(font);
   cH(options);
   ci(n);
+  cprim = BITMAPS;
 }
 void GDClass::cmd_progress(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t options, uint16_t val, uint16_t range) {
   cFFFFFF(0x0f);
@@ -1230,6 +1274,7 @@ void GDClass::cmd_progress(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t 
   cH(val);
   cH(range);
   cH(0);
+  cprim = 0xff;
 }
 void GDClass::cmd_regread(uint32_t ptr) {
   cFFFFFF(0x19);
@@ -1258,6 +1303,7 @@ void GDClass::cmd_scrollbar(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t
   cH(val);
   cH(size);
   cH(range);
+  cprim = 0xff;
 }
 void GDClass::cmd_setfont(byte font, uint32_t ptr) {
   cFFFFFF(0x2b);
@@ -1286,6 +1332,7 @@ void GDClass::cmd_slider(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t 
   cH(val);
   cH(range);
   cH(0);
+  cprim = 0xff;
 }
 void GDClass::cmd_snapshot(uint32_t ptr) {
   cFFFFFF(0x1f);
@@ -1311,6 +1358,7 @@ void GDClass::cmd_text(int16_t x, int16_t y, byte font, uint16_t options, const 
   ch(font);
   cH(options);
   cs(s);
+  cprim = BITMAPS;
 }
 void GDClass::cmd_toggle(int16_t x, int16_t y, int16_t w, byte font, uint16_t options, uint16_t state, const char *s) {
   cFFFFFF(0x12);
@@ -1383,6 +1431,46 @@ void GDClass::cmd_setbitmap(uint32_t source, uint16_t fmt, uint16_t w, uint16_t 
   ch(0);
 }
 
+void GDClass::cmd_flasherase() {
+  cFFFFFF(0x44);
+}
+
+void GDClass::cmd_flashwrite(uint32_t dest, uint32_t num) {
+  cFFFFFF(0x45);
+  cI(dest);
+  cI(num);
+}
+
+void GDClass::cmd_flashupdate(uint32_t dst, uint32_t src, uint32_t n) {
+  cFFFFFF(0x47);
+  cI(dst);
+  cI(src);
+  cI(n);
+}
+
+void GDClass::cmd_flashread(uint32_t dst, uint32_t src, uint32_t n) {
+  cFFFFFF(0x46);
+  cI(dst);
+  cI(src);
+  cI(n);
+}
+
+void GDClass::cmd_flashdetach() {
+  cFFFFFF(0x48);
+}
+
+void GDClass::cmd_flashattach() {
+  cFFFFFF(0x49);
+}
+
+uint32_t GDClass::cmd_flashfast(uint32_t &r) {
+  cFFFFFF(0x4a);
+  r = GDTR.getwp();
+  cI(0xdeadbeef);
+}
+
+// XXX to do: cmd_rotate_around cmd_inflate2
+
 void GDClass::cmd_setrotate(uint32_t r) {
   cFFFFFF(0x36);
   cI(r);
@@ -1396,6 +1484,7 @@ void GDClass::cmd_setrotate(uint32_t r) {
     w = t;
   }
 }
+
 void GDClass::cmd_videostart() {
   cFFFFFF(0x40);
 }
@@ -1424,6 +1513,9 @@ void GDClass::wr32(uint32_t addr, uint32_t v) {
 }
 void GDClass::wr_n(uint32_t addr, byte *src, uint32_t n) {
   GDTR.wr_n(addr, src, n);
+}
+void GDClass::rd_n(byte *dst, uint32_t addr, uint32_t n) {
+  GDTR.rd_n(dst, addr, n);
 }
 
 void GDClass::cmdbyte(uint8_t b) {

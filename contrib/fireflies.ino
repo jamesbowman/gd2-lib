@@ -2,9 +2,19 @@
 #include <SPI.h>
 #include <GD2.h>
 
+#define BACKGROUND "bg.jpg"
+
+Bitmap background;
+int brightness = 255;
+
 void setup()
 {
+#ifndef BACKGROUND
   GD.begin(~GD_STORAGE);
+#else
+  GD.begin();
+  background.fromfile(BACKGROUND);
+#endif
   bitmap();
 }
 
@@ -23,6 +33,7 @@ void bitmap()
 }
 
 // Catmull-Rom spline
+
 float spline(float t, float p_1, float p0, float p1, float p2)
 {
   return (
@@ -45,6 +56,11 @@ xy &path(float t, xy p[])
 void loop()
 {
   GD.Clear();
+  GD.ColorRGB(brightness, brightness, brightness);
+  background.wallpaper();
+  GD.ColorRGB(255, 255, 255);
+
+#if 0
   GD.Begin(BITMAPS);
 
   GD.ColorRGB(0x335020);          // Greenish
@@ -68,12 +84,16 @@ void loop()
 
   for (int i = 0; i < 100; i++)
     path(i * .01, p).draw();
-
+#endif
   GD.swap();
 
-  delay(100);
-  GD.wr(REG_PWM_DUTY, 128);
-  delay(GD.random(20, 50));       // range of times to light up, in ms
-  GD.wr(REG_PWM_DUTY, 0);
-  delay(GD.random(300, 500));     // range of times to remain dark, in ms
+  // delay(100);
+  // GD.wr(REG_PWM_DUTY, 128);
+  // delay(GD.random(20, 50));       // range of times to light up, in ms
+  // GD.wr(REG_PWM_DUTY, 0);
+  // delay(GD.random(300, 500));     // range of times to remain dark, in ms
+
+  GD.get_inputs();
+  if (GD.inputs.touching)
+    brightness = map(GD.inputs.x, 0, GD.w, 0, 255);
 }

@@ -8,16 +8,16 @@ class GDTransport {
   size_t nbuf;
 
 public:
-  void begin0(void) {
+  void begin0(int _cs) {
     char *port = getenv("PORT");
     spi_connect(&sd, port ? port : "/dev/ttyUSB0");
 
-    hostcmd(0x42);    // SLEEP
-    hostcmd(0x61);    // CLKSEL default
-    hostcmd(0x00);    // ACTIVE
-    hostcmd(0x48);    // CLKINT
-    hostcmd(0x49);    // PD_ROMS all up
-    hostcmd(0x68);    // RST_PULSE
+//     hostcmd(0x42);    // SLEEP
+//     hostcmd(0x61);    // CLKSEL default
+     hostcmd(0x00);    // ACTIVE
+     hostcmd(0x48);    // CLKINT
+//     hostcmd(0x49);    // PD_ROMS all up
+     hostcmd(0x68);    // RST_PULSE
     ft8xx_model = 1;
   }
   void begin1(void) {
@@ -43,10 +43,9 @@ public:
     nbuf += 4;
   }
   void cmd_n(byte *s, size_t n) {
-    flush();
-    getspace(n);
-    spi_write(&sd, (char*)s, n);
-    wp += n;
+    for (size_t i = 0; i < n; i++) {
+      cmdbyte(s[i]);
+    }
   }
   void hostcmd(uint8_t a)
   {
@@ -124,8 +123,17 @@ public:
   void flush() {
     if (nbuf) {
       getspace(nbuf);
-      spi_write(&sd, (char*)buf, nbuf);
-      wp += nbuf;
+      if (1) {
+        spi_write(&sd, (char*)buf, nbuf);
+        wp += nbuf;
+      } 
+      if (1) {
+        static FILE *log = NULL;
+        if (log == NULL)
+          log = fopen("log", "w");
+        fwrite(buf, 1, nbuf, log);
+        fflush(log);
+      }
       nbuf = 0;
     }
   }
@@ -136,7 +144,12 @@ public:
       stream();
     }
   }
-  void bulk(uint32_t addr) {}
+  void bulk(uint32_t addr) {
+    __end();
+    char buf[3] = {ADDR3(addr)};
+    spi_sel(&sd);
+    spi_write(&sd, buf, sizeof(buf));
+  }
 
   void __wstart(uint32_t a) {
     char buf[3] = {WADDR3(a)};
