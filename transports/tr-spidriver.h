@@ -18,11 +18,22 @@ public:
      hostcmd(0x48);    // CLKINT
 //     hostcmd(0x49);    // PD_ROMS all up
      hostcmd(0x68);    // RST_PULSE
-    ft8xx_model = 1;
   }
   void begin1(void) {
-    while ((__rd16(0xc0000UL) & 0xff) != 0x08)
+    uint16_t id;
+    while (((id = __rd16(0xc0000UL)) & 0xff) != 0x08)
       ;
+    // So that FT800,801      FT810-3   FT815,6
+    // model       0            1         2
+    switch (id >> 8) {
+    case 0x10:
+    case 0x11:
+    case 0x12:
+    case 0x13: ft8xx_model = 1; break;
+    case 0x15:
+    case 0x16: ft8xx_model = 2; break;
+    default:   ft8xx_model = 0; break;
+    }
     wp = 0;
     stream();
   }
@@ -85,9 +96,25 @@ public:
   void __end() {
     spi_unsel(&sd);
   }
+
+  void coprocsssor_recovery(void) {
+    __end();
+    if (ft8xx_model >= 2)
+      for (byte i = 0; i < 128; i += 2)
+        __wr16(i, __rd16(0x309800UL + i));
+
+    __wr16(REG_CPURESET, 1);
+    __wr16(REG_CMD_WRITE, 0);
+    __wr16(REG_CMD_READ, 0);
+    wp = 0;
+    __wr16(REG_CPURESET, 0);
+    stream();
+  }
   void stream(void) {
     space = __rd16(REG_CMDB_SPACE);
-    assert((space & 3) == 0);
+    if (space & 3) {
+      GD.alert();
+    }
     __wstart(REG_CMDB_WRITE);
   }
   void resume(void) {

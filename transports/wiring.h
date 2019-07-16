@@ -96,7 +96,7 @@ public:
 
     // So that FT800,801      FT810-3   FT815,6
     // model       0            1         2
-    switch (__rd16(0x0c0000) >> 8) {
+    switch (__rd16(0x0c0000UL) >> 8) {
     case 0x10:
     case 0x11:
     case 0x12:
@@ -178,11 +178,23 @@ public:
     YIELD();
     getfree(0);
   }
+  void coprocsssor_recovery(void) {
+    __end();
+    if (ft8xx_model >= 2)
+      for (byte i = 0; i < 128; i += 2)
+        __wr16(i, __rd16(0x309800UL + i));
+
+    __wr16(REG_CPURESET, 1);
+    __wr16(REG_CMD_WRITE, 0);
+    __wr16(REG_CMD_READ, 0);
+    wp = 0;
+    __wr16(REG_CPURESET, 0);
+    stream();
+  }
   uint16_t rp() {
     uint16_t r = __rd16(REG_CMD_READ);
-    if (r == 0xfff) {
-      GD.alert("COPROCESSOR EXCEPTION");
-    }
+    if (r == 0xfff)
+      GD.alert();
     return r;
   }
   void finish() {
@@ -346,6 +358,13 @@ public:
     __end();
     __wr16(REG_CMD_WRITE, wp);
     // while (__rd16(REG_CMD_READ) != wp) ;
+  }
+
+  void capture_error_message(void) {
+    __end();
+    if (ft8xx_model >= 2)
+      for (byte i = 0; i < 128; i += 2)
+        __wr16(i, __rd16(0x309800UL + i));
   }
 
   void stream(void) {
