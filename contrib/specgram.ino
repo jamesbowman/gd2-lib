@@ -9,12 +9,15 @@ static PROGMEM uint8_t jet[] = {
 
 class SpecGram
 {
-public:
   uint32_t base;
   int y;
   int width, history;
 
+public:
   void setup(int _width = 256, int _history = 256) {
+    // width is the number of freqency buckets
+    // history is how many samples to keep
+
     GD.cmd_loadimage(0, 0);
     GD.copy(jet, sizeof(jet));
     base = 512UL;
@@ -22,15 +25,15 @@ public:
     history = _history;
     y = 0;
 
-    GD.cmd_memset(base, 0, 256 * 256);
+    GD.cmd_memset(base, 0, width * history);
     GD.BitmapSource(base);
-    GD.BitmapLayout(PALETTED565, 256, history);
-    GD.BitmapSize(NEAREST, BORDER, REPEAT, 256, history - 1);
+    GD.BitmapLayout(14 /*PALETTED565*/, width, history);
+    GD.BitmapSize(NEAREST, BORDER, REPEAT, width, history - 1);
   }
   void draw() {
     GD.Begin(BITMAPS);
     GD.SaveContext();
-    GD.BitmapTransformF(((y - 254) & 0xff) << 8);
+    GD.BitmapTransformF(((y + 2) & (history - 1)) << 8);
     GD.Vertex2f(16 * 112, 16 * 10);
     GD.RestoreContext();
   }
