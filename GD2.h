@@ -937,6 +937,9 @@ typedef struct {
 #define TEXT8X8              9
 #define TEXTVGA              10
 #define BARGRAPH             11
+#define PALETTED565          14
+#define PALETTED4444         15
+#define PALETTED8            16
 #define L2                   17
 
 #define NEAREST              0
