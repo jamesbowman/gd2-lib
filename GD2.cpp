@@ -1,8 +1,8 @@
 /*
-}
- * Copyright (C) 2013-2016 by James Bowman <jamesb@excamera.com>
+ *
+ * Copyright (C) 2013-2019 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
- * Teensy 3.2, ESP8266 and ESP32.
+ * Teensy 3.x/4.0, ESP8266 and ESP32.
  *
  */
 
@@ -860,8 +860,8 @@ void GDClass::cs(const char *s) {
   align(count + 1);
 }
 
-#if !defined(ESP8266) && !defined(ESP32)
-void GDClass::copy(const PROGMEM uint8_t *src, int count) {
+#if !defined(ESP8266) && !defined(ESP32) && !defined(TEENSYDUINO)
+void GDClass::copy(const uint8_t *src, int count) {
 #else
 void GDClass::copy(const uint8_t *src, int count) {
 #endif
@@ -1468,6 +1468,7 @@ uint32_t GDClass::cmd_flashfast(uint32_t &r) {
   cFFFFFF(0x4a);
   r = GDTR.getwp();
   cI(0xdeadbeef);
+  return r;
 }
 
 // XXX to do: cmd_rotate_around cmd_inflate2

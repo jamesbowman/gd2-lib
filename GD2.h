@@ -531,7 +531,7 @@ public:
   void polar(int &x, int &y, int16_t r, uint16_t th);
   uint16_t atan2(int16_t y, int16_t x);
 
-#if !defined(ESP8266) && !defined(ESP32)
+#if !defined(ESP8266) && !defined(ESP32) && !defined(TEENSYDUINO)
   void copy(const PROGMEM uint8_t *src, int count);
 #else
   void copy(const uint8_t *src, int count);
@@ -1462,7 +1462,7 @@ public:
  * compiler. So redefine PROGMEM to nothing.
  */
 
-#if defined(ESP8266) || defined(ARDUINO_ARCH_STM32L4)
+#if defined(ESP8266) || defined(ARDUINO_ARCH_STM32L4) || defined(TEENSYDUINO)
 #undef PROGMEM
 #define PROGMEM
 #endif
