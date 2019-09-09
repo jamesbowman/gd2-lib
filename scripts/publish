@@ -1,7 +1,11 @@
 cd sdcard
 zip ../Gameduino2sd.zip *
 cd ../
-rsync -av Gameduino2.zip Gameduino2sd.zip excamera.com:/data/scratch32/html/excamera/files/
+GD=Gameduino2-v`cat version`.zip
+cp Gameduino2.zip $GD
+rsync -av $GD Gameduino2.zip Gameduino2sd.zip excamera.com:/data/scratch32/html/excamera/files/
 wget -O ref http://excamera.com/files/Gameduino2.zip
+diff ref Gameduino2.zip
+wget -O ref http://excamera.com/files/$GD
 diff ref Gameduino2.zip
 rm ref
