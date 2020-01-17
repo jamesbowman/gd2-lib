@@ -43,7 +43,10 @@
 #define BOARD_SUNFLOWER   2
 #define BOARD_OTHER       3
 
+#ifndef BOARD
 #define BOARD         BOARD_GAMEDUINO23 // board, from above
+#endif
+
 #define STORAGE       1                 // Want SD storage?
 #define CALIBRATION   1                 // Want touchscreen calibration?
 
@@ -493,7 +496,7 @@ class Bitmap {
 public:
   xy size, center;
   uint32_t source;
-  uint8_t format;
+  uint16_t format;
   int8_t handle;
 
   void fromtext(int font, const char* s);

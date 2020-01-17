@@ -320,7 +320,7 @@ void
 startMotion(int x, int y)
 {
   angle = 0.0;
-  ptov(x, y, 480, 272, lastPos);
+  ptov(x, y, GD.w, GD.h, lastPos);
 }
 
 void
@@ -328,7 +328,7 @@ trackMotion(int x, int y)
 {
   float curPos[3], dx, dy, dz;
 
-  ptov(x, y, 480, 272, curPos);
+  ptov(x, y, GD.w, GD.h, curPos);
 
   dx = curPos[0] - lastPos[0];
   dy = curPos[1] - lastPos[1];
@@ -390,7 +390,7 @@ void loop()
   GD.RestoreContext();
 
   int et = t - 720;
-  int sun_x = (480 * 16) - (et << 2),
+  int sun_x = (GD.w * 16) - (et << 2),
       sun_y = (100 * 16) + (et << 1);
   GD.SaveContext();
   GD.PointSize(52 * 16);
