@@ -1072,6 +1072,7 @@ void GDClass::Vertex2ii(uint16_t x, uint16_t y, byte handle, byte cell) {
 }
 void GDClass::VertexFormat(byte frac) {
   cI((39UL << 24) | (((frac) & 7) << 0));
+  vxf = frac;
 }
 void GDClass::BitmapLayoutH(byte linestride, byte height) {
   cI((40UL << 24) | (((linestride) & 3) << 2) | (((height) & 3) << 0));
@@ -1145,6 +1146,7 @@ void GDClass::cmd_dial(int16_t x, int16_t y, int16_t r, uint16_t options, uint16
 void GDClass::cmd_dlstart(void) {
   cFFFFFF(0x00);
   cprim = 0xff;
+  vxf = 4;
 }
 void GDClass::cmd_fgcolor(uint32_t c) {
   cFFFFFF(0x0a);
