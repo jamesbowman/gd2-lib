@@ -153,9 +153,10 @@ static byte test_RAM(void)
   uint32_t a;
   for (a = 0; a < 0x40000U; a += 947)
     GD.wr(a, a);
-  for (a = 0; a < 0x40000U; a += 947)
+  for (a = 0; a < 0x40000U; a += 947) {
     if (GD.rd(a) != (a & 0xff))
       return 0;
+  }
   return 1;
 }
 
@@ -446,17 +447,12 @@ static struct {
   { 255, 255 }
 };
 
-static void setup_flash()
-{
-  GD.begin(0);
-}
-
 void loop()
 {
   if (EEPROM.read(0) == 0x7c)
     EEPROM.write(0, 0xff);
-  setup_flash();
   GD.begin(0);
+  GD.self_calibrate();
 
   x = y = 0;
   testcard(1, "Starting tests");
