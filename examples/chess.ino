@@ -4,6 +4,8 @@
 
 #include "chess_assets.h"
 
+byte sf = 1;
+
 static byte sinus(byte x)
 {
   return 128 + GD.rsin(128, -16384 + (x << 7));
@@ -14,9 +16,14 @@ void setup()
   Serial.begin(1000000);    // JCB
   GD.begin(~GD_STORAGE);
   LOAD_ASSETS();
+
+  sf = GD.h / 272;
+
+  GD.BitmapHandle(0);
+  GD.BitmapSize(BILINEAR, BORDER, BORDER, sf * 32, sf * 32);
   GD.BitmapHandle(1);
   GD.BitmapSource(CHECKER);
-  GD.BitmapSize(NEAREST, REPEAT, REPEAT, 256, 256);
+  GD.BitmapSize(NEAREST, REPEAT, REPEAT, sf * 256, sf * 256);
   GD.BitmapLayout(L8, CHECKER_WIDTH, CHECKER_HEIGHT);
 }
 
@@ -221,11 +228,11 @@ void print_board()
 
 static void p2(int &x, int &y, const char *c)
 {
-  x = 16 * (32 + 32 * (c[0] - 'a'));
-  y = 16 * ( 8 + 32 * ('8' - c[1]));
+  x = 16 * (32 + sf * 32 * (c[0] - 'a'));
+  y = 16 * ( 8 + sf * 32 * ('8' - c[1]));
 }
 
-#define MOVETIME    10
+#define MOVETIME    30
 #define OVERSAMPLE  8
 
 int clocks[2];
@@ -236,14 +243,14 @@ void draw_board()
   byte xlat[] = { 0, 0, 0, 1, 5, 2, 3, 4, 0, 6, 0, 7, 11,8, 9,10 };
 
   for (int i = 0; i < MOVETIME; i++) {
-    GD.cmd_gradient(0, 0, 0x101010, 480, 272, 0x202060);
+    GD.cmd_gradient(0, 0, 0x101010, GD.w, GD.h, 0x202060);
     GD.cmd_bgcolor(0x101020);
 
     GD.Begin(BITMAPS);
     GD.SaveContext();
     GD.ColorRGB(0xfff0c0);
     GD.ColorA(0xc0);
-    GD.cmd_scale(F16(32), F16(32));
+    GD.cmd_scale(F16(sf * 32), F16(sf * 32));
     GD.cmd_setmatrix();
     GD.Vertex2ii(32, 8, 1, 0);
     GD.RestoreContext();
@@ -252,14 +259,17 @@ void draw_board()
     if (c[0])
       moving = 16 * ('8' - c[3]) + (c[2] - 'a');
 
-    GD.Begin(BITMAPS);
+    GD.SaveContext();
     GD.ColorRGB(0xe0e0e0);
+    GD.cmd_loadidentity();
+    GD.cmd_scale(F16(sf), F16(sf));
+    GD.cmd_setmatrix();
     for (int y = 0; y < 8; y++)
       for (int x = 0; x < 8; x++) {
         int pos = 16 * y + x;
         byte piece = b[pos] & 15;
         if (pos != moving && piece != 0)
-          GD.Vertex2ii(32 + 32 * x, 8 + 32 * y, 0, xlat[piece]);
+          GD.Vertex2ii(32 + sf * 32 * x, 8 + sf * 32 * y, 0, xlat[piece]);
       }
 
     if (c[0]) {
@@ -282,14 +292,15 @@ void draw_board()
       } //' }a
       GD.ColorA(255);
     }
+    GD.RestoreContext();
 
     GD.ColorRGB((k == 16) ? 0xffffffUL : 0x606060);
-    GD.cmd_clock(384,       60, 50, OPT_FLAT | OPT_NOSECS, 0, 0, clocks[0], 0);
+    GD.cmd_clock(sf * 384, sf *  60, sf * 50, OPT_FLAT | OPT_NOSECS, 0, 0, clocks[0], 0);
     GD.ColorRGB((k != 16) ? 0xffffffUL : 0x606060);
-    GD.cmd_clock(384, 272 - 60, 50, OPT_FLAT | OPT_NOSECS, 0, 0, clocks[1], 0);
+    GD.cmd_clock(sf * 384, sf * (272 - 60), sf * 50, OPT_FLAT | OPT_NOSECS, 0, 0, clocks[1], 0);
 
     GD.ColorRGB(0xffffff);
-    GD.cmd_text(384, 136, 30, OPT_CENTER, c);
+    GD.cmd_text(sf * 384, sf * 136, 30, OPT_CENTER, c);
 
     GD.swap();
   }
