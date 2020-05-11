@@ -8,6 +8,8 @@
 //                                  3D Projection
 ////////////////////////////////////////////////////////////////////////////////
 
+static byte VXSCALE = 16;
+
 static float model_mat[9] = { 1.0, 0.0, 0.0,
                         0.0, 1.0, 0.0,
                         0.0, 0.0, 1.0 };
@@ -150,8 +152,8 @@ void project(float distance)
     float yy = x * model_mat[1] + y * model_mat[4] + z * model_mat[7];
     float zz = x * model_mat[2] + y * model_mat[5] + z * model_mat[8] + distance;
     float q = hw / (100 + zz);
-    dst->x = 16 * (hw       + xx * q);
-    dst->y = 16 * (GD.h / 2 + yy * q);
+    dst->x = VXSCALE * (hw       + xx * q);
+    dst->y = VXSCALE * (GD.h / 2 + yy * q);
     dst->z = zz;
     dst++;
   }
@@ -287,8 +289,8 @@ static void draw_navlight(byte nf)
   GD.BitmapHandle(LIGHT_HANDLE);
  
   GD.ColorRGB((i == N_VERTICES - 2) ? 0xfe2b18 : 0x4fff82);
-  GD.Vertex2f(projected[i].x - (16 * LIGHT_WIDTH / 2),
-              projected[i].y - (16 * LIGHT_WIDTH / 2));
+  GD.Vertex2f(projected[i].x - (VXSCALE * LIGHT_WIDTH / 2),
+              projected[i].y - (VXSCALE * LIGHT_WIDTH / 2));
   GD.RestoreContext();
 }
 
@@ -375,12 +377,18 @@ static void draw_sun(int x, int y, int rot)
   GD.cmd_rotate(rot);
   GD.cmd_translate(-F16(SUN_WIDTH / 2), -F16(SUN_WIDTH / 2));
   GD.cmd_setmatrix();
-  GD.Vertex2f(x - (16 * SUN_WIDTH / 2), y - (16 * SUN_WIDTH / 2));
+  GD.Vertex2f(x - (VXSCALE * SUN_WIDTH / 2), y - (VXSCALE * SUN_WIDTH / 2));
 }
 
 void loop()
 {
+  if (ft8xx_model == 2) {
+    GD.VertexFormat(3);
+    GD.vxf = 3;
+    VXSCALE = 8;
+  }
   GD.Begin(BITMAPS);
+  GD.SaveContext();
   GD.SaveContext();
   GD.BitmapHandle(BACKGROUND_HANDLE);
   GD.cmd_translate(-(long)t << 14, (long)t << 13);
@@ -390,8 +398,8 @@ void loop()
   GD.RestoreContext();
 
   int et = t - 720;
-  int sun_x = (GD.w * 16) - (et << 2),
-      sun_y = (100 * 16) + (et << 1);
+  int sun_x = (GD.w * VXSCALE) - (et << 2),
+      sun_y = (100 * VXSCALE) + (et << 1);
   GD.SaveContext();
   GD.PointSize(52 * 16);
   GD.ColorRGB(0x000000);
