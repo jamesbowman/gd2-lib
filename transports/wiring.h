@@ -34,6 +34,9 @@ public:
 
     cs = _cs;
 
+    pinMode(9, OUTPUT);
+    digitalWrite(9, HIGH);
+
     pinMode(cs, OUTPUT);
     digitalWrite(cs, HIGH);
 
@@ -48,7 +51,7 @@ public:
 #endif
 
     hostcmd(0x42);    // SLEEP
-    hostcmd(0x61);    // CLKSEL default
+//  hostcmd(0x61);    // CLKSEL default
     hostcmd(0x00);    // ACTIVE
 #if (BOARD != BOARD_GAMEDUINO23)
     hostcmd(0x44);    // CLKEXT
