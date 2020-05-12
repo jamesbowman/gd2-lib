@@ -11,9 +11,9 @@ void setup()
 static void ray(int &x, int &y, int r, int i)
 {
   uint16_t th = 0x8000 + 65536UL * i / 7;
-  GD.polar(x, y, r, th);
-  x += 16 * 240;
-  y += 16 * 136;
+  GD.polar(x, y, map(r, 0, 272, 0, GD.h), th);
+  x += 16 * (GD.w / 2);
+  y += 16 * (GD.h / 2);
 }
 
 static void drawdata(int *data)
@@ -46,7 +46,7 @@ void loop()
   GD.LineWidth(8);
   GD.Begin(LINES);
   for (int i = 0; i < 7; i++) {
-    GD.Vertex2ii(240, 136);
+    GD.Vertex2f(PIXELS(GD.w / 2), PIXELS(GD.h / 2));
     ray(x, y, 16 * 114, i);
     GD.Vertex2f(x, y);
   }

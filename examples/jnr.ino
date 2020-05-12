@@ -70,14 +70,17 @@ int mapxy(int x, int y)
 static void parallax(int x, int y)
 {
   x %= 400;
-  GD.Vertex2f(16 * -x, 16 * y);
-  GD.Vertex2f(16 * (-x + 400), 16 * y);
+  for (int i = 0; i < GD.w; i += 400) {
+    GD.Vertex2f(8 * (-x + i), 8 * y);
+  }
 }
 
 static void draw(int xx)
 {
+  GD.VertexFormat(3);
+  GD.SaveContext();
   GD.Clear();
-  GD.ScissorSize(480, 240);
+  GD.ScissorSize(GD.w, GD.h - 32);
 
   GD.ClearColorRGB(0x2578c5);
   GD.Clear();
@@ -119,16 +122,16 @@ static void draw(int xx)
       }
       GD.Tag(128 + 8 * x + y);
       GD.Cell(index);
-      GD.Vertex2f(16 * (-(xx & 31) + 32 * x), 16 * 32 * y);
+      GD.Vertex2f(8 * (-(xx & 31) + 32 * x), 8 * 32 * y);
     }
 
   GD.RestoreContext();
   GD.cmd_scale(F16(16), F16(16));
   GD.cmd_setmatrix();
   GD.BitmapHandle(CHECKER_HANDLE);
-  GD.BitmapSize(NEAREST, REPEAT, REPEAT, 512, 32);
+  GD.BitmapSize(NEAREST, REPEAT, REPEAT, GD.w, 32);
   GD.Cell(0);
-  GD.Vertex2f(16 * -(xx & 31), 16 * 240);
+  GD.Vertex2f(8 * -(xx & 31), 8 * 240);
 }
 
 void setup()

@@ -19,7 +19,7 @@ void loop()
   GD.Begin(BITMAPS);
   GD.ColorRGB(0x68b203);
   // GD.ColorRGB(GD.random(255), GD.random(255), GD.random(255)); // JCB
-  GD.BitmapSize(NEAREST, REPEAT, REPEAT, 480, 272);
-  GD.Vertex2ii(0, 0);
+  GD.BitmapSize(NEAREST, REPEAT, REPEAT, GD.w, GD.h);
+  GD.Vertex2f(0, 0);
   GD.swap();
 } //' }a
