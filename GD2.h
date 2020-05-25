@@ -1470,4 +1470,22 @@ public:
 #define PROGMEM
 #endif
 
+#if defined(TEENSYDUINO)
+static void __attribute__((__unused__)) teensy_sync()
+{
+  while (1) {
+    delay(1000);
+    Serial.write("\xa4");
+    for (int i = 0; i < 1000; i++) {
+      if (Serial.available()) {
+        if (Serial.read() == '!') {
+          return;
+        }
+        delay(1);
+      }
+    }
+  }
+}
+#endif
+
 #endif

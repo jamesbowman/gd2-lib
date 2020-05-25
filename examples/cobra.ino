@@ -356,7 +356,7 @@ trackMotion(int x, int y)
 
 void setup()
 {
-  Serial.begin(115200);
+  teensy_sync();
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
@@ -365,6 +365,8 @@ void setup()
   startMotion(240, 136);
   trackMotion(243, 138);
 // #endif          // }JCB
+  startMotion(240, 136);
+  trackMotion(243, 139);
 }
 
 static byte prev_touching;
@@ -397,7 +399,7 @@ void loop()
   GD.Vertex2ii(0, 0, 0, 0);
   GD.RestoreContext();
 
-  int et = t - 720;
+  int et = t - 0;
   int sun_x = (GD.w * VXSCALE) - (et << 2),
       sun_y = (100 * VXSCALE) + (et << 1);
   GD.SaveContext();
@@ -443,6 +445,8 @@ void loop()
 #endif        // }JCB
 
   GD.swap();
+  for (;;)
+  GD.dumpscreen();
 
   t++;
 }

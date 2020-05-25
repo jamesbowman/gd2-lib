@@ -1732,61 +1732,55 @@ void GDClass::textsize(int &w, int &h, int font, const char *s)
 #define REG_SCREENSHOT_READ  (ft8xx_model ? 0x302174UL : 0x102554UL) // Set to enable readout
 #define RAM_SCREENSHOT       (ft8xx_model ? 0x3c2000UL : 0x1C2000UL) // Screenshot readout buffer
 
+#define REG_SCREENSHOT_BUSY4 0x003025f4
+
 #ifndef DUMPDEV
 void GDClass::dumpscreen(void)
 {
-  {
-    finish();
-    int w = GD.rd16(REG_HSIZE), h = GD.rd16(REG_VSIZE);
+  finish();
+  delay(100);
+  int w = GD.rd16(REG_HSIZE), h = GD.rd16(REG_VSIZE);
 
-    wr(REG_SCREENSHOT_EN, 1);
-    if (ft8xx_model)
-      wr(0x0030201c, 32);
-    Serial.write(0xa5);
-    Serial.write(w & 0xff);
-    Serial.write((w >> 8) & 0xff);
-    Serial.write(h & 0xff);
-    Serial.write((h >> 8) & 0xff);
-    for (int ly = 0; ly < h; ly++) {
-      wr16(REG_SCREENSHOT_Y, ly);
-      wr(REG_SCREENSHOT_START, 1);
-      delay(2);
+  wr(REG_SCREENSHOT_EN, 1);
+  if (ft8xx_model)
+    wr(0x0030201c, 32);
+  Serial.write(0xa5);
+  Serial.write(w & 0xff);
+  Serial.write((w >> 8) & 0xff);
+  Serial.write(h & 0xff);
+  Serial.write((h >> 8) & 0xff);
+
+  for (int ly = -1; ly < h; ly++) {
+    wr16(REG_SCREENSHOT_Y, max(0, ly));
+    wr(REG_SCREENSHOT_START, 1);
+    delay(1);
+    if (ft8xx_model < 2)
       while (rd32(REG_SCREENSHOT_BUSY) | rd32(REG_SCREENSHOT_BUSY + 4))
         ;
-      wr(REG_SCREENSHOT_READ, 1);
-      bulkrd(RAM_SCREENSHOT);
-      SPI.transfer(0xff);
-      for (int x = 0; x < w; x += 8) {
-        union {
-          uint32_t v;
-          struct {
-            uint8_t b, g, r, a;
-          };
-        } block[8];
-        for (int i = 0; i < 8; i++) {
-          block[i].b = SPI.transfer(0xff);
-          block[i].g = SPI.transfer(0xff);
-          block[i].r = SPI.transfer(0xff);
-          block[i].a = SPI.transfer(0xff);
-        }
-        // if (x == 0) block[0].r = 0xff;
-        byte difference = 1;
-        for (int i = 1, mask = 2; i < 8; i++, mask <<= 1)
-          if (block[i].v != block[i-1].v)
-            difference |= mask;
-        Serial.write(difference);
+    else
+      while (rd32(REG_SCREENSHOT_BUSY4) | rd32(REG_SCREENSHOT_BUSY4 + 4) | rd32(REG_SCREENSHOT_BUSY4 + 8) | rd32(REG_SCREENSHOT_BUSY4 + 12))
+        ;
+    while (Serial.read() != '!')
+      ;
+    wr(REG_SCREENSHOT_READ, 1);
 
-        for (int i = 0; i < 8; i++)
-          if (1 & (difference >> i)) {
-            Serial.write(block[i].b);
-            Serial.write(block[i].g);
-            Serial.write(block[i].r);
-          }
-      }
-      resume();
-      wr(REG_SCREENSHOT_READ, 0);
-    }
-    wr16(REG_SCREENSHOT_EN, 0);
+#if 1
+    uint32_t r = cmd_memcrc(RAM_SCREENSHOT, 4 * w);
+    finish();
+    uint32_t crc = rd32(r);
+    Serial.write(crc);
+    Serial.write(crc >> 8);
+    Serial.write(crc >> 16);
+    Serial.write(crc >> 24);
+#endif
+
+    bulkrd(RAM_SCREENSHOT);     // {
+    SPI.transfer(0xff);
+    for (int x = 0; x < 4*w; x++)
+      Serial.write(SPI.transfer(0xff));
+    resume();                   // }
+    wr(REG_SCREENSHOT_READ, 0);
   }
+  wr16(REG_SCREENSHOT_EN, 0);
 }
 #endif
