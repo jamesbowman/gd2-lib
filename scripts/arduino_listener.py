@@ -84,24 +84,28 @@ if __name__ == '__main__':
             (w,h) = struct.unpack("HH", ser.read(4))
             filename = "%06d.png" % frame
             sys.stdout.flush() 
-            im = Image.new("RGB", (w, h))
+            im = Image.new("RGBA", (w, h))
             pix = im.load()
             total = 0
             t0 = time.time()
 
             ser.timeout = 0.5
-            for y in range(-1, h):
+            for y in range(-2, h):
                 sys.stdout.write("\rdumping %dx%d frame to %s [%-50s]" % (w, h, filename, ("#" * (50 * y // h ))))
                 ser.write(b"!")
                 (licrc, ) = struct.unpack("I", ser.read(4))
                 li = ser.read(4 * w)
                 if licrc != crc(li):
                     print("\nCRC mismatch line %d %08x %08x\n" % (y, licrc, crc(li)))
-                strip = Image.frombytes("RGBA", (w, 1), li).convert("RGB")
+                strip = Image.frombytes("RGBA", (w, 1), li)
                 im.paste(strip, (0, max(0, y)))
             # print('%.1f' % (time.time() - t0))
             print(' %08x' % crc(im.tobytes()))
             ser.timeout = 0
+
+            (b,g,r,a) = im.split()
+            im = Image.merge("RGB", (r, g, b))
+
             if 1:
                 im.save(filename)
             else:

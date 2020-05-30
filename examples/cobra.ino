@@ -445,8 +445,8 @@ void loop()
 #endif        // }JCB
 
   GD.swap();
-  for (;;)
-  GD.dumpscreen();
+  if (t & 1)
+    GD.dumpscreen();
 
   t++;
 }

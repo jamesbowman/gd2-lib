@@ -1750,7 +1750,7 @@ void GDClass::dumpscreen(void)
   Serial.write(h & 0xff);
   Serial.write((h >> 8) & 0xff);
 
-  for (int ly = -1; ly < h; ly++) {
+  for (int ly = -2; ly < h; ly++) {
     wr16(REG_SCREENSHOT_Y, max(0, ly));
     wr(REG_SCREENSHOT_START, 1);
     delay(1);
