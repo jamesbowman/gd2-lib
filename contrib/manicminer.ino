@@ -634,6 +634,14 @@ uint32_t atxy(byte x, byte y)
   return level_base() + (y << 5) + x;
 }
 
+static void rd2(byte &a, byte &b, uint32_t addr)
+{
+  byte u[2];
+  GD.rd_n(u, addr, 2);
+  a = u[0];
+  b = u[1];
+}
+
 // crumble block at s, which is the sequence
 // 2 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> AIR
 
@@ -647,43 +655,43 @@ static void crumble(uint32_t s)
     GD.wr(s, nexts[r]);
 }
 
+static byte any(byte code, byte a, byte b, byte c, byte d)
+{
+  return ((a == code) ||
+          (b == code) ||
+          (c == code) ||
+          (d == code));
+}
+
 // is it legal for willy to be at (x,y)
 static int canbe(byte x, byte y)
 {
   uint32_t addr = atxy(x / 8, y / 8);
-  return
-    (GD.rd(addr) != ELEM_WALL) &&
-    (GD.rd(addr+1) != ELEM_WALL) &&
-    (GD.rd(addr+32) != ELEM_WALL) &&
-    (GD.rd(addr+33) != ELEM_WALL);
+  byte a, b, c, d;
+  rd2(a, b, addr);
+  rd2(c, d, addr + 32);
+  return !any(ELEM_WALL, a, b, c, d);
 }
 
 // is Willy standing in a solar ray?
 static int inray(byte x, byte y)
 {
   uint32_t addr = atxy(x / 8, y / 8);
+  byte a, b, c, d;
+  rd2(a, b, addr);
+  rd2(c, d, addr + 32);
   return
-    (GD.rd(addr) > 0x80 ) ||
-    (GD.rd(addr+1) > 0x80) ||
-    (GD.rd(addr+32) > 0x80) ||
-    (GD.rd(addr+33) > 0x80);
+    (a > 0x80 ) ||
+    (b > 0x80) ||
+    (c > 0x80) ||
+    (d > 0x80);
 }
 
 static void under_willy(byte &a, byte &b, byte &c, byte &d)
 {
   uint32_t addr = atxy(state.wx / 8, state.wy / 8);
-  a = GD.rd(addr);
-  b = GD.rd(addr+1);
-  c = GD.rd(addr+32);
-  d = GD.rd(addr+33);
-}
-
-static byte any(byte code, byte a, byte b, byte c, byte d)
-{
-  return ((a == code) |
-          (b == code) |
-          (c == code) |
-          (d == code));
+  rd2(a, b, addr);
+  rd2(c, d, addr + 32);
 }
 
 static byte collide_16x16(byte x, byte y)
@@ -700,8 +708,10 @@ static void move_all(void)
   // Animate conveyors: 
   byte conveyor_offset = (7 & state.t) ^ (state.conveyordir ? 0 : 7);
   uint32_t level_chars = TILES_MEM + 15 * 64 * state.level;
-  GD.wr_n(level_chars + 4 * 64, state.conveyor0 + conveyor_offset, 8);
-  GD.wr_n(level_chars + 4 * 64 + 3 * 8, state.conveyor1 + (7 ^ conveyor_offset), 8);
+  GD.cmd_memwrite(level_chars + 4 * 64, 8);
+  GD.copyram(state.conveyor0 + conveyor_offset, 8);
+  GD.cmd_memwrite(level_chars + 4 * 64 + 3 * 8, 8);
+  GD.copyram(state.conveyor1 + (7 ^ conveyor_offset), 8);
 
   // Willy movement
   // See http://www.seasip.demon.co.uk/Jsw/manic.mac
@@ -726,9 +736,9 @@ static void move_all(void)
     // sprintf(debug, "jumping=%d index=%d (%d,%d)", state.jumping, index, state.wx, state.wy);
   }
   uint32_t feet_addr = atxy(state.wx >> 3, (state.wy + 16) >> 3);
-  byte elem0 = GD.rd(feet_addr);
-  byte elem1 = GD.rd(feet_addr + 1);
-  byte elem = ((1 <= elem0) && (elem0 <= 31)) ? elem0 : elem1;
+  byte elems[2];
+  GD.rd_n(elems, feet_addr, 2);
+  byte elem = ((1 <= elems[0]) && (elems[0] <= 31)) ? elems[0] : elems[1];
 
   byte dx = 0xff;
   byte first_jump = (con & CONTROL_JUMP) && state.lastdx == 0xff;
@@ -987,11 +997,11 @@ void loop()
     load_level();
     state.alive = 1;
     while (state.alive) {
-uint32_t t0 = GD.rd32(REG_FRAMES);
       draw_all();
+uint32_t t0 = millis();
       move_all();
-uint32_t t1 = GD.rd32(REG_FRAMES);
-      printf("Took %d frames\n", (t1 - t0) & 0xff);
+uint32_t t1 = millis();
+      printf("Took %d millis\n", (t1 - t0));
     }
   }
   game_over();
