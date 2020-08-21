@@ -177,6 +177,7 @@ void spi_connect(SPIDriver *sd, const char* portname)
 {
   sd->port = openSerialPort(portname);
   writeToSerialPort(sd->port, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", 64);
+  writeToSerialPort(sd->port, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", 64);
 
   const char tests[] = "A\r\n\0xff";
   for (int i = 0; i < 4; i++) {

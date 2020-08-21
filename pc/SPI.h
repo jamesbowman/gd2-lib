@@ -8,6 +8,7 @@ extern "C" {
 #include "math.h"
 #include "ctype.h"
 #include <assert.h>
+#include <sys/time.h>
 }
 
 static void delay(unsigned int n)
@@ -20,11 +21,13 @@ static void delayMicroseconds(unsigned int n)
 }
 static unsigned long micros()
 {
-  return 0;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec * 1000000 + tv.tv_usec;
 }
 static unsigned long millis()
 {
-  return 0;
+  return micros() / 1000;
 }
 
 #define DEC 0
@@ -36,6 +39,9 @@ class _Serial {
     }
     void write(int x) {
       printf("%c", x);
+    }
+    void write(const char *s) {
+      printf("%s", s);
     }
 
     void print(const char c) {
@@ -59,6 +65,12 @@ class _Serial {
     }
     void println(int x, int base) {
       printf((base == DEC) ? "%d\n" : "%X\n", x);
+    }
+    int available() {
+      assert(0);
+    }
+    int read() {
+      assert(0);
     }
 };
 
