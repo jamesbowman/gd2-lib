@@ -6,8 +6,11 @@ int dazzler = 1;
 int SF = 3;
 int X0 = 112;
 int Y0 = 32;
+int plain_font;
 
 int OVER_FRAMES = 1; // 5
+
+#define TITLE_FRAMES 90     // How many frames to show the title screen
 
 struct level {
   char name[33];
@@ -82,9 +85,6 @@ static uint32_t attr(byte a)
     ((a & 1) ? l : 0));
 }
 
-#define HANDLE_WILLY    0
-#define HANDLE_SPECIAL  6
-
 // The map's blocks have fixed meanings:
 #define ELEM_AIR      0
 #define ELEM_FLOOR    1
@@ -132,16 +132,31 @@ static void screen2ii(byte x, byte y, byte handle = 0, byte cell = 0)
 {
   GD.BitmapHandle(handle);
   GD.Cell(cell);
+  GD.Vertex2f(SF * 8 * x, SF * 8 * y);
+}
+
+void screen(int &x, int &y)
+{
+  x *= SF;
+  y *= SF;
+}
+
+void toscreen(int &x, int &y, int ix, int iy)
+{
+  x = ix;
+  y = iy;
+  screen(x, y);
+}
+
+void screenvx(int x, int y)
+{
+  screen(x, y);
   GD.Vertex2f(8 * x, 8 * y);
 }
 
-static void spectrum(byte x, byte y)
+static void qvertex(int x, int y, byte handle = 0, byte cell = 0)
 {
-  GD.Vertex2f(8 * x, 8 * y);
-}
-
-static void qvertex(byte x, byte y, byte handle = 0, byte cell = 0)
-{
+  screen(x, y);
   if ((x & ~511) | (y & ~511)) {
     GD.Cell(cell);
     GD.Vertex2f(8 * x, 8 * y);
@@ -158,6 +173,23 @@ static void bump_score(byte n)
   // Extra life on crossing 10K
   if ((old_score < 10000) && (10000 <= state.score))
     state.lives++;
+}
+
+static void load_assets(void)
+{
+  LOAD_ASSETS();
+  GD.BitmapHandle(TITLE_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * TITLE_WIDTH, SF * TITLE_HEIGHT);
+  GD.BitmapHandle(WILLY_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * WILLY_WIDTH, SF * WILLY_HEIGHT);
+  GD.BitmapHandle(GUARDIANS_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * GUARDIANS_WIDTH, SF * GUARDIANS_HEIGHT);
+  GD.BitmapHandle(PORTALS_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * PORTALS_WIDTH, SF * PORTALS_HEIGHT);
+  GD.BitmapHandle(ITEMS_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * ITEMS_WIDTH, SF * ITEMS_HEIGHT);
+  GD.BitmapHandle(SPECIALS_HANDLE);
+  GD.BitmapSize(NEAREST, BORDER, BORDER, SF * SPECIALS_WIDTH, SF * SPECIALS_HEIGHT);
 }
 
 static void load_level(void)
@@ -246,31 +278,32 @@ static uint32_t level_base()
   return MANICMINER_ASSET_MAPS + (state.level << 9);
 }
 
+static void draw_start(void)
+{
+  GD.VertexTranslateX(16 * X0);
+  GD.VertexTranslateY(16 * Y0);
+  GD.VertexFormat(3);
+
+  GD.Begin(BITMAPS);
+  GD.cmd_loadidentity();
+  GD.cmd_scale(F16(SF), F16(SF));
+  GD.cmd_setmatrix();
+}
+
 static void draw_level(void)
 {
   const PROGMEM level *l = &levels[state.level];
 
   GD.ClearColorRGB(pgm_read_dword(&(l->border)));
   GD.Clear();
-  GD.VertexTranslateX(16 * X0);
-  GD.VertexTranslateY(16 * 32);
-  GD.VertexFormat(3);
-
-  // GD.cmd_clock(240, 50, 30, 0, 10, 0, 33, 100);
-  // GD.cmd_number(240, 136, 31U, OPT_CENTER, 47U);
-  // GD.cmd_slider(10, 250, 400, 10, 0, 66, 100);
-  // GD.cmd_regwrite(0, 0x55aa);
-
   GD.Tag(CONTROL_JUMP);
-
-  GD.Begin(BITMAPS);
-  GD.cmd_loadidentity();
-  GD.cmd_scale(F16(sf), F16(sf));
-  GD.cmd_setmatrix();
 
   {
     GD.BitmapHandle(TILES_HANDLE);
     GD.BitmapSource(TILES_MEM + 15 * 64 * state.level);
+    GD.BitmapSize(NEAREST, REPEAT, REPEAT, SF * 256, SF * 128);
+    qvertex(0, 0, TILES_HANDLE, 0);
+    GD.BitmapSize(NEAREST, BORDER, BORDER, SF * 16, SF * 16);
     uint32_t pmap = level_base();
     for (byte y = 0; y < 16; y++) {
       byte x;
@@ -310,62 +343,75 @@ static void draw_status(byte playing)
 {
   const level *l = &levels[state.level];
 
-  uint16_t x = 0;
-  uint16_t y = 128;
+  int x = 0;
+  int y = 128;
 
   GD.Begin(RECTS);
   GD.ColorRGB(BLACK);
-  GD.Vertex2ii(x, y);
-  GD.Vertex2ii(x + 256, y + 84);
+  screenvx(0, 128);
+  screenvx(256, 192);
 
   GD.ColorRGB(0xaaaa00);
-  GD.Vertex2ii(x, y);
-  GD.Vertex2ii(x + 256, y + 15);
-  GD.ColorRGB(0xa00000);
-  GD.Vertex2ii(x, y + 16);
-  GD.Vertex2ii(x + 64, y + 30);
-  GD.ColorRGB(0x00a000);
-  GD.Vertex2ii(x + 64, y + 16);
-  GD.Vertex2ii(x + 256, y + 30);
+  screenvx(0, 128);
+  screenvx(256, 128 + 15);
 
+  GD.ColorRGB(0xa00000);
+  screenvx(0, 128 + 16);
+  screenvx(64, 128 + 30);
+  GD.ColorRGB(0x00a000);
+  screenvx(64, 128 + 16);
+  screenvx(256, 128 + 30);
+
+  GD.SaveContext();
+  GD.cmd_loadidentity();
+  GD.cmd_setmatrix();
   if (playing) {
     GD.ColorRGB(BLACK);
     char nm[33];
     strcpy_P(nm, l->name);
-    GD.cmd_text(128, y + 7, 26, OPT_CENTER, nm);
+    toscreen(x, y, 128, 128 + 7);
+    GD.cmd_text(x, y, plain_font, OPT_CENTER, nm);
 
     GD.ColorRGB(WHITE);
-    GD.cmd_text(x + 26, y + 23, 26, OPT_CENTERY | OPT_RIGHTX, "AIR");
+    toscreen(x, y, 26, 128 + 23);
+    GD.cmd_text(x, y, plain_font, OPT_CENTERY | OPT_RIGHTX, "AIR");
 
-    uint16_t air_x0 = x + 4 * 8;
-    uint16_t air_x1 = x + 4 * 8 + state.air;
-    uint16_t air_y = y + 23;
+    x = 30 + state.air;
+    y =128 + 23;
 
     GD.Begin(LINES);
     GD.LineWidth(64);
     GD.ColorRGB(BLACK);
     GD.ColorA(128);
-    GD.Vertex2ii(air_x0, air_y);
-    GD.Vertex2ii(air_x1, air_y);
+    screenvx(30, y);
+    screenvx(x, y);
 
     GD.LineWidth(32);
     GD.ColorRGB(WHITE);
     GD.ColorA(255);
-    GD.Vertex2ii(air_x0, air_y);
-    GD.Vertex2ii(air_x1, air_y);
+    screenvx(30, y);
+    screenvx(x, y);
   }
 
   GD.ColorRGB(YELLOW);
-  GD.cmd_text(x, y + 48, 26, OPT_CENTERY, "High Score");
-  GD.cmd_text(x + 165, y + 48, 26, OPT_CENTERY, "Score");
-  GD.cmd_number(x + 75, y + 48, 26, OPT_CENTERY | 6, state.hiscore);
-  GD.cmd_number(x + 255, y + 48, 26, OPT_RIGHTX | OPT_CENTERY | 6, state.score);
+
+  toscreen(x, y, 0, 128 + 40);
+  GD.cmd_text(x, y, plain_font, OPT_CENTERY, "High Score");
+  toscreen(x, y, 165, 128 + 40);
+  GD.cmd_text(x, y, plain_font, OPT_CENTERY, "Score");
+  toscreen(x, y, 75, 128 + 40);
+  GD.cmd_number(x, y, plain_font, OPT_CENTERY | 6, state.hiscore);
+  toscreen(x, y, 255, 128 + 40);
+  GD.cmd_number(x, y, plain_font, OPT_RIGHTX | OPT_CENTERY | 6, state.score);
+
+
+  GD.RestoreContext();
 
   if (playing) {
     GD.ColorRGB(CYAN);
     GD.Begin(BITMAPS);
     for (int i = 0; i < (state.lives - 1); i++) {
-      screen2ii(2 + i * 16, 190, HANDLE_WILLY, 3 & (state.t >> 2));
+      screen2ii(2 + i * 16, 192 - 16, WILLY_HANDLE, 3 & (state.t >> 2));
     }
   }
 }
@@ -433,14 +479,14 @@ static void draw_willy()
   byte frame = state.wf ^ (state.wd ? 7 : 0);
   GD.ColorRGB(WHITE);
   GD.Begin(BITMAPS);
-  screen2ii(state.wx, state.wy, HANDLE_WILLY, frame);
+  screen2ii(state.wx, state.wy, WILLY_HANDLE, frame);
 }
 
 void setup()
 {
   GD.begin(~GD_STORAGE);
 
-  LOAD_ASSETS();
+  load_assets();
 
   // Handle     Graphic
   //   0        Miner Willy
@@ -454,7 +500,10 @@ void setup()
   GD.Clear();
   GD.swap();
 
-  sf = 2;
+  SF = 3;
+  X0 = (GD.w - SF * 256) / 2;
+  Y0 = (GD.h - SF * 192) / 2;
+  plain_font = (SF < 3) ? 26 : 31;
 }
 
 static void draw_guardians(void)
@@ -793,6 +842,7 @@ static void move_all(void)
       // squarewave(0, 800 + 2 * state.air, 100);
       state.air--;
       bump_score(7);
+      draw_start();
       draw_level();
       draw_willy();
       draw_guardians();
@@ -812,6 +862,7 @@ static void draw_all(void)
   GD.cmd_regwrite(REG_PLAY, 1);
   GD.get_inputs();
   for (int j = 0; j < OVER_FRAMES; j++) {
+    draw_start();
     draw_level();
     draw_willy();
     draw_guardians();
@@ -848,14 +899,14 @@ static void game_over()
     screen2ii(125, i);
 
     GD.Begin(BITMAPS);
-    screen2ii(120, 128 - 16, HANDLE_SPECIAL, 1);    // Plinth
+    screen2ii(120, 128 - 16, SPECIALS_HANDLE, 1);    // Plinth
 
-    screen2ii(120, i, HANDLE_SPECIAL, 2);           // Boot
+    screen2ii(120, i, SPECIALS_HANDLE, 2);           // Boot
 
     // Scissor so that boot covers up Willy
     GD.ScissorSize(480, 511);
     GD.ScissorXY(0, i + 16 + Y0);
-    screen2ii(124, 128 - Y0, HANDLE_WILLY, 0);      // Willy
+    screen2ii(124, 128 - Y0, WILLY_HANDLE, 0);      // Willy
     GD.RestoreContext();
 
     draw_status(1);
@@ -881,19 +932,26 @@ int touch(void)
 static void title_screen(void)
 {
   for (;;) {
-    for (uint16_t i = 0; i < 1500; i++) {
+    for (uint16_t i = 0; i < TITLE_FRAMES; i++) {
       GD.get_inputs();
+      draw_start();
       GD.ClearColorRGB(attr(2));
       GD.Clear();
       GD.Begin(BITMAPS);
-      screen2ii(0, 0, 5, 0);
+      screen2ii(0, 0, TITLE_HANDLE, 0);
       draw_status(0);
 
+      GD.cmd_loadidentity();
+      GD.cmd_setmatrix();
+
       // Text crawl across bottom
-      GD.ScissorSize(256, 272);
-      GD.ScissorXY(X0, 0);
+      int x, y;
+
+      GD.ScissorXY(X0, Y0);
+      GD.ScissorSize(SF * 256, SF * 272);
       GD.ColorRGB(WHITE);
-      GD.cmd_text(256 - i, 222, 27, 0, marquee);
+      toscreen(x, y, 256 - i, 192 - 8);
+      GD.cmd_text(x, y, plain_font, OPT_CENTER, marquee);
 
       GD.swap();
       if (touch())
@@ -925,7 +983,7 @@ void loop()
   state.score = 0;
 
   for (state.lives = 3; state.lives; state.lives--) {
-    LOAD_ASSETS();
+    load_assets();
     load_level();
     state.alive = 1;
     while (state.alive) {
