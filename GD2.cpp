@@ -1092,6 +1092,12 @@ void GDClass::VertexTranslateY(uint32_t y) {
 void GDClass::Nop(void) {
   cI((45UL << 24));
 }
+void GDClass::BitmapExtFormat(uint16_t format) {
+  cI((46UL << 24)|(((format) & 65535UL) << 0));
+}
+void GDClass::BitmapSwizzle(byte r, byte g, byte b, byte a) {
+  cI((47UL << 24)|(((r) & 7UL) << 9)|(((g) & 7UL) << 6)|(((b) & 7UL) << 3)|(((a) & 7UL) << 0));
+}
 
 void GDClass::cmd_append(uint32_t ptr, uint32_t num) {
   cFFFFFF(0x1e);

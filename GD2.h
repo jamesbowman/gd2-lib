@@ -173,8 +173,6 @@ struct dirent {
 #define FAT16 0
 #define FAT32 1
 
-#define DD
-
 class sdcard {
   public:
   void sel() {
@@ -187,7 +185,7 @@ class sdcard {
   }
   void sd_delay(byte n) {
     while (n--) {
-      DD SPI.transfer(0xff);
+      SPI.transfer(0xff);
     }
   }
 
@@ -201,22 +199,18 @@ class sdcard {
 #endif
 
     sel();
-    // DD SPI.transfer(0xff);
-    DD SPI.transfer(0x40 | cmd);
-    DD SPI.transfer(0xff & (lba >> 24));
-    DD SPI.transfer(0xff & (lba >> 16));
-    DD SPI.transfer(0xff & (lba >> 8));
-    DD SPI.transfer(0xff & (lba));
-    DD SPI.transfer(crc);
-    // DD SPI.transfer(0xff);
+    SPI.transfer(0x40 | cmd);
+    SPI.transfer(0xff & (lba >> 24));
+    SPI.transfer(0xff & (lba >> 16));
+    SPI.transfer(0xff & (lba >> 8));
+    SPI.transfer(0xff & (lba));
+    SPI.transfer(crc);
   }
 
   byte response() {
     byte r;
-    DD
     r = SPI.transfer(0xff);
     while (r & 0x80) {
-      DD
       r = SPI.transfer(0xff);
     }
     return r;
@@ -619,6 +613,8 @@ public:
   void VertexTranslateX(uint32_t x);
   void VertexTranslateY(uint32_t y);
   void Nop(void);
+  void BitmapExtFormat(uint16_t format);
+  void BitmapSwizzle(byte r, byte g, byte b, byte a);
 
   // Higher-level graphics commands
 
@@ -944,6 +940,7 @@ typedef struct {
 #define PALETTED4444         15
 #define PALETTED8            16
 #define L2                   17
+#define GLFORMAT             31
 
 #define NEAREST              0
 #define BILINEAR             1
@@ -1142,6 +1139,11 @@ typedef struct {
 #define REG_FLASH_SIZE                       0x00309024 
 #define REG_FLASH_STATUS                     0x003025f0 
 #define REG_ADAPTIVE_FRAMERATE               0x0030257c
+
+#define RED                  2
+#define GREEN                3
+#define BLUE                 4
+#define ALPHA                5
 
 #define VERTEX2II(x, y, handle, cell) \
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))
@@ -1470,7 +1472,7 @@ public:
 #define PROGMEM
 #endif
 
-#if defined(TEENSYDUINO)
+#if defined(TEENSYDUINO) && !defined(SPIDRIVER)
 static void __attribute__((__unused__)) teensy_sync()
 {
   while (1) {
