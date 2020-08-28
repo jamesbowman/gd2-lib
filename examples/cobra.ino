@@ -356,7 +356,6 @@ trackMotion(int x, int y)
 
 void setup()
 {
-  teensy_sync();
   GD.begin();
   LOAD_ASSETS();
   GD.BitmapHandle(BACKGROUND_HANDLE);
@@ -445,8 +444,6 @@ void loop()
 #endif        // }JCB
 
   GD.swap();
-  if (t & 1)
-    GD.dumpscreen();
 
   t++;
 }
