@@ -552,6 +552,11 @@ public:
 
   void get_inputs(void);
   void get_accel(int &x, int &y, int &z);
+  struct _wii {
+      byte active;
+      xy l, r;
+      uint16_t buttons;
+  };
   struct {
     uint16_t track_tag;
     uint16_t track_val;
@@ -565,6 +570,7 @@ public:
     uint8_t ptag;
     uint8_t touching;
     xy xytouch;
+    struct _wii wii[2];
   } inputs;
 
   void AlphaFunc(byte func, byte ref);
@@ -1147,6 +1153,18 @@ typedef struct {
         ((2UL << 30) | (((x) & 511UL) << 21) | (((y) & 511UL) << 12) | (((handle) & 31) << 7) | (((cell) & 127) << 0))
 
 #define ROM_PIXEL_FF        0xc0400UL
+
+#define WII_A      (1 << 12)
+#define WII_B      (1 << 14)
+#define WII_SELECT (1 << 4)
+#define WII_HOME   (1 << 3)
+#define WII_START  (1 << 2)
+#define WII_X      (1 << 11)
+#define WII_Y      (1 << 13)
+#define WII_UP     (1 << 8)
+#define WII_DOWN   (1 << 6)
+#define WII_LEFT   (1 << 9)
+#define WII_RIGHT  (1 << 7)
 
 class Poly {
     int x0, y0, x1, y1;

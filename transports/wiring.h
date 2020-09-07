@@ -56,14 +56,14 @@ public:
 #if (BOARD != BOARD_GAMEDUINO23)
     hostcmd(0x44);    // CLKEXT
 #else
-    hostcmd(0x48);    // CLKINT
+//    hostcmd(0x48);    // CLKINT
 #endif
 //  hostcmd(0x49);    // PD_ROMS all up
     hostcmd(0x68);    // RST_PULSE
   }
   void begin1() {
-#if 0
-    delay(120);
+#if 1
+    delay(220);
 #else
     while ((__rd16(0xc0000UL) & 0xff) != 0x08)
       ;
@@ -106,7 +106,7 @@ public:
     case 0x13: ft8xx_model = 1; break;
     case 0x15:
     case 0x16: ft8xx_model = 2; break;
-    default:   ft8xx_model = 0; break;
+    default:   ft8xx_model = 2; break;
     }
 
     wp = 0;
@@ -414,6 +414,11 @@ public:
       freespace = (4096 - 4) - fullness;
     } while (freespace < n);
     stream();
+  }
+  void daz_rd(uint8_t *s, size_t n) {
+    __end();
+    // XXX
+    resume();
   }
 
   byte streaming;

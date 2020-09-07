@@ -10,19 +10,23 @@ class GDTransport {
 public:
   void begin0(int _cs) {
     char *port = getenv("PORT");
+    printf("HERE %s\n", port);
     spi_connect(&sd, port ? port : "/dev/ttyUSB0");
+    printf("connected\n");
 
 //     hostcmd(0x42);    // SLEEP
 //     hostcmd(0x61);    // CLKSEL default
      hostcmd(0x00);    // ACTIVE
-     hostcmd(0x48);    // CLKINT
+//     hostcmd(0x48);    // CLKINT
 //     hostcmd(0x49);    // PD_ROMS all up
-     hostcmd(0x68);    // RST_PULSE
+    hostcmd(0x68);    // RST_PULSE
   }
   void begin1(void) {
+#if 0
     uint16_t id;
-    while (((id = __rd16(0xc0000UL)) & 0xff) != 0x08)
+    while (((id = __rd16(0xc0000UL)) & 0xff) != 0x08) {
       ;
+    }
     // So that FT800,801      FT810-3   FT815,6
     // model       0            1         2
     switch (id >> 8) {
@@ -34,6 +38,11 @@ public:
     case 0x16: ft8xx_model = 2; break;
     default:   ft8xx_model = 0; break;
     }
+#else
+    ft8xx_model = 2;
+    while (__rd16(REG_ID) != 0x7c)
+      ;
+#endif
     wp = 0;
     stream();
   }
@@ -205,5 +214,13 @@ public:
     spi_write(&sd, (char*)src, n);
     spi_unsel(&sd);
     stream();
+  }
+
+  void daz_rd(uint8_t *s, size_t n) {
+    __end();
+    spi_setb(&sd, 0);
+    spi_read(&sd, (char*)s, n);
+    spi_setb(&sd, 1);
+    resume();
   }
 };
