@@ -9,6 +9,8 @@
 #define CONTROL_UP    4
 #define CONTROL_DOWN  8
 
+byte dazzler = 1, sf = 3;
+
 class Controller {
   public:
     void begin() {
@@ -86,13 +88,14 @@ static void sprite(byte x, byte y, byte anim, uint16_t rot = 0xffff)
     GD.cmd_translate(F16(8),F16(8));
     GD.cmd_rotate(rot);
     GD.cmd_translate(F16(-8),F16(-8));
+    GD.cmd_scale(F16(sf), F16(sf));
     GD.cmd_setmatrix();
   }
+  GD.Cell(anim);
   if (x > 224) {
-    GD.Cell(anim);
-    GD.Vertex2f(16 * (x - 256), 16 * y);
+    GD.Vertex2f(sf * (x - 256), sf * y);
   } else {
-    GD.Vertex2ii(x, y, SPRITES_HANDLE, anim);
+    GD.Vertex2f(sf * x, sf * y);
   }
 }
 
@@ -207,16 +210,21 @@ void loop()
   static uint32_t counter;
   static int prevt;
 
+  GD.VertexFormat(0);
   GD.Clear();
+  if (dazzler) {
+    GD.cmd_scale(F16(3), F16(3));
+    GD.cmd_setmatrix();
+  }
   GD.Tag(1);
   GD.BitmapHandle(SPRITES_HANDLE);
   GD.SaveContext();
-  GD.ScissorSize(224, 256);
+  GD.ScissorSize(sf * 224, sf * 256);
   GD.Begin(BITMAPS);
   GD.Vertex2ii(0, 0, BACKGROUND_HANDLE, 0);   // Background bitmap
 
-  GD.wr(REG_TAG_X, frogx - 8);
-  GD.wr(REG_TAG_Y, frogy);
+  GD.wr(REG_TAG_X, sf * (frogx - 8));
+  GD.wr(REG_TAG_Y, sf * (frogy));
 
   GD.Tag(2);
   GD.AlphaFunc(GREATER, 0); // on road, don't tag transparent pixels
@@ -289,14 +297,14 @@ void loop()
   ti = max(0, ti - 1);
   if ((ti == 0) && (dying == 0))
     dying = 1;
- 
+
   // Draw 'time remaining' by clearing a black rectangle
   {
     byte tw = 120 - (ti >> 7);
     byte tx = 72;
     GD.SaveContext();
-    GD.ScissorXY(tx, 248);
-    GD.ScissorSize(tw, 8);
+    GD.ScissorXY(sf * tx, sf * 248);
+    GD.ScissorSize(sf * tw, sf * 8);
     GD.Clear();
     GD.RestoreContext();
   }
@@ -337,29 +345,32 @@ void loop()
 #define PADX(x) (480 + (x - 3) * 48)
 #define PADY(y) (272 + (y - 3) * 48)
 
-  GD.Tag(CONTROL_RIGHT);
-  GD.Vertex2ii(PADX(2), PADY(1), ARROW_HANDLE, 0);
-  rotate_around(24, 24, 3 * 0x4000);
+  if (!dazzler) {
+    GD.Tag(CONTROL_RIGHT);
+    GD.Vertex2ii(PADX(2), PADY(1), ARROW_HANDLE, 0);
+    rotate_around(24, 24, 3 * 0x4000);
 
-  GD.Tag(CONTROL_UP);
-  GD.Vertex2ii(PADX(1), PADY(0), ARROW_HANDLE, 0);
-  rotate_around(24, 24, 2 * 0x4000);
+    GD.Tag(CONTROL_UP);
+    GD.Vertex2ii(PADX(1), PADY(0), ARROW_HANDLE, 0);
+    rotate_around(24, 24, 2 * 0x4000);
 
-  GD.Tag(CONTROL_LEFT);
-  GD.Vertex2ii(PADX(0), PADY(1), ARROW_HANDLE, 0);
-  rotate_around(24, 24, 1 * 0x4000);
+    GD.Tag(CONTROL_LEFT);
+    GD.Vertex2ii(PADX(0), PADY(1), ARROW_HANDLE, 0);
+    rotate_around(24, 24, 1 * 0x4000);
 
-  GD.Tag(CONTROL_DOWN);
-  GD.Vertex2ii(PADX(1), PADY(2), ARROW_HANDLE, 0);
-  GD.RestoreContext();
+    GD.Tag(CONTROL_DOWN);
+    GD.Vertex2ii(PADX(1), PADY(2), ARROW_HANDLE, 0);
+    GD.RestoreContext();
 
-  GD.ColorRGB(255, 85, 0);
-  draw_score(3, 1, score);
-  draw_score(11, 1, hiscore);
+    GD.ColorRGB(255, 85, 0);
+    draw_score(3, 1, score);
+    draw_score(11, 1, hiscore);
 
-  GD.ColorRGB(255, 255, 255);
-  for (byte i = 0; i < lives; i++)
-    GD.Vertex2ii(8 * i, 30 * 8, LIFE_HANDLE, 0);
+    GD.ColorRGB(255, 255, 255);
+    GD.BitmapHandle(LIFE_HANDLE);
+    for (byte i = 0; i < lives; i++)
+      GD.Vertex2f(sf * (8 * i), sf * (30 * 8));
+  }
 
   // for (byte i = 0; i < 16; i++)
   //  GD.wr(atxy(i, 30), (i < lives) ? BG_LIFE : BG_BLACK);
@@ -430,5 +441,12 @@ void setup()
   Serial.begin(1000000);    // JCB
   GD.begin(~GD_STORAGE);
   LOAD_ASSETS();
+  if (dazzler) {
+    GD.cmd_setrotate(2);
+    GD.BitmapHandle(BACKGROUND_HANDLE);
+    GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
+    GD.BitmapHandle(SPRITES_HANDLE);
+    GD.BitmapSize(NEAREST, BORDER, BORDER, 3 * 16, 3 * 16);
+  }
   game_setup();
 }
