@@ -60,3 +60,34 @@ After calling ``GD.begin()`` set the orientation like this::
     GD.cmd_setrotate(2);
 
 to enter portrait mode. The argument controls orientation, 0 and 1 are landscape. 2 and 3 are portrait.
+
+**I can only get coordinates in the range 0-511! What about bigger screens?**
+
+The short-form drawing opcode ``Vertex2ii()`` has a limited coordinate range.
+But the opcode ``Vertex2f()`` has huge range. It works in subpixel coordinates, with programmable precision. At the start of drawing do:
+
+    GD.VertexFormat(3); // means points are scaled by 8 below
+
+then instead of this:
+
+    GD.Vertex2ii(x, y, handle, cell);
+
+do:
+
+    GD.BitmapHandle(handle);
+    GD.Cell(cell);
+    GD.Vertex2f(8 * x, 8 * y);
+
+This has enough range for displays up to 2048x2048.
+
+**My JPEG does not load!**
+
+First, filenames on the microSD must not be too long. They have to
+be in 8.3 form so that they can be recognized by the quite limited
+Arduino-based loader.
+
+Second, make sure the JPEG is not progressive; the hardware supports baseline jpegs only.
+
+If there's doubt, post your JPEG to the
+[Gameduino Forum](https://gameduino2.proboards.com/),
+and I can take a look at it.
