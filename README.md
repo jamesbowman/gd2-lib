@@ -80,6 +80,11 @@ do:
 
 This has enough range for displays up to 2048x2048.
 
+If you don't need subpixel precision, then you can use a precision of zero:
+
+    GD.VertexFormat(0); // integer coordinates
+    GD.Vertex2f(x, y);
+
 **My JPEG does not load!**
 
 First, filenames on the microSD must not be too long. They have to
