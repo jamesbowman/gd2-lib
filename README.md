@@ -87,7 +87,9 @@ If you don't need subpixel precision, then you can use a precision of zero:
 
 **My JPEG does not load!**
 
-First, filenames on the microSD must not be too long. They have to
+First, make sure you call ``GD.Begin()`` without arguments. This initializes the microSD code.
+
+Second, filenames on the microSD must not be too long. They have to
 be in 8.3 form so that they can be recognized by the quite limited
 Arduino-based loader.
 
