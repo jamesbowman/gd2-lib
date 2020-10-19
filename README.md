@@ -66,7 +66,7 @@ to enter portrait mode. The argument controls orientation, 0 and 1 are landscape
 The short-form drawing opcode ``Vertex2ii()`` has a limited coordinate range.
 But the opcode ``Vertex2f()`` has huge range. It works in subpixel coordinates, with programmable precision. At the start of drawing do:
 
-    GD.VertexFormat(3); // means points are scaled by 8 below
+    GD.VertexFormat(3); // means points are scaled by 8 from here on
 
 then instead of this:
 
