@@ -6,7 +6,6 @@ void setup()
 {
   Serial.begin(1000000);
   GD.begin(~GD_STORAGE);
-  printf("ok\n");
 
   GD.BitmapHandle(0);
   GD.cmd_setbitmap(0, BARGRAPH, 1280, 256);
