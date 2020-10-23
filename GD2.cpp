@@ -884,9 +884,9 @@ void GDClass::copyram(byte *src, int count) {
 void GDClass::AlphaFunc(byte func, byte ref) {
   cI((9UL << 24) | ((func & 7L) << 8) | ((ref & 255L) << 0));
 }
-void GDClass::Begin(byte prim) {
+void GDClass::Begin(Primitive prim) {
   // if (prim != cprim) {
-    cI((31UL << 24) | prim);
+    cI((31UL << 24) | int(prim));
     cprim = prim;
   // }
 }
