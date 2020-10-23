@@ -30,6 +30,8 @@
 #define __DUE__ 1
 #endif
 
+#if !defined(SD_PIN)        // {
+
 #if defined(ESP8266)
 #define SD_PIN        D9    // pin used for the microSD enable signal
 #elif defined(ARDUINO_ARCH_STM32)
@@ -37,6 +39,8 @@
 #else
 #define SD_PIN        9     // pin used for the microSD enable signal
 #endif
+
+#endif                      // }
 
 #define BOARD_FTDI_80x    0
 #define BOARD_GAMEDUINO23 1
