@@ -527,13 +527,15 @@ begin1:
   Serial.print("BOARD");
   Serial.println(BOARD, DEC);
 
-  Serial.println("ID REGISTER:");
+  Serial.print("model:");
+  Serial.println(ft8xx_model, HEX);
+  Serial.print("ID REGISTER:");
   Serial.println(GDTR.rd32(REG_ID), HEX);
-  Serial.println("READ PTR:");
+  Serial.print("READ PTR:");
   Serial.println(GDTR.rd32(REG_CMD_READ), HEX);
-  Serial.println("WRITE PTR:");
+  Serial.print("WRITE PTR:");
   Serial.println(GDTR.rd32(REG_CMD_WRITE), HEX);
-  Serial.println("CMDB SPACE:");
+  Serial.print("CMDB SPACE:");
   Serial.println(GDTR.rd32(REG_CMDB_SPACE), HEX);
 #endif
 
@@ -1091,6 +1093,12 @@ void GDClass::VertexTranslateY(uint32_t y) {
 }
 void GDClass::Nop(void) {
   cI((45UL << 24));
+}
+void GDClass::BitmapExtFormat(uint16_t format) {
+  cI((46UL << 24)|(((format) & 65535UL) << 0));
+}
+void GDClass::BitmapSwizzle(byte r, byte g, byte b, byte a) {
+  cI((47UL << 24)|(((r) & 7UL) << 9)|(((g) & 7UL) << 6)|(((b) & 7UL) << 3)|(((a) & 7UL) << 0));
 }
 
 void GDClass::cmd_append(uint32_t ptr, uint32_t num) {
