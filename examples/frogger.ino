@@ -209,16 +209,20 @@ void loop()
 {
   static uint32_t counter;
   static int prevt;
+  int x0 = 0;
 
   GD.VertexFormat(0);
   GD.Clear();
   if (dazzler) {
-    GD.cmd_scale(F16(3), F16(3));
+    x0 = (1280 - sf * 224) / 2;
+    GD.VertexTranslateX(16 * x0);
+    GD.cmd_scale(F16(sf), F16(sf));
     GD.cmd_setmatrix();
   }
   GD.Tag(1);
   GD.BitmapHandle(SPRITES_HANDLE);
   GD.SaveContext();
+  GD.ScissorXY(x0, 0);
   GD.ScissorSize(sf * 224, sf * 256);
   GD.Begin(BITMAPS);
   GD.Vertex2ii(0, 0, BACKGROUND_HANDLE, 0);   // Background bitmap
@@ -442,7 +446,7 @@ void setup()
   GD.begin(~GD_STORAGE);
   LOAD_ASSETS();
   if (dazzler) {
-    GD.cmd_setrotate(2);
+    // GD.cmd_setrotate(2);
     GD.BitmapHandle(BACKGROUND_HANDLE);
     GD.BitmapSize(NEAREST, BORDER, BORDER, GD.w, GD.h);
     GD.BitmapHandle(SPRITES_HANDLE);
