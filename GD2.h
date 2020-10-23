@@ -515,6 +515,18 @@ class Bitmap __fromatlas(uint32_t addr);
 
 ////////////////////////////////////////////////////////////////////////
 
+enum Primitive {
+BITMAPS              = 1,
+POINTS               = 2,
+LINES                = 3,
+LINE_STRIP           = 4,
+EDGE_STRIP_R         = 5,
+EDGE_STRIP_L         = 6,
+EDGE_STRIP_A         = 7,
+EDGE_STRIP_B         = 8,
+RECTS                = 9,
+};
+
 class GDClass {
 public:
   int w, h;
@@ -566,7 +578,7 @@ public:
   } inputs;
 
   void AlphaFunc(byte func, byte ref);
-  void Begin(byte prim);
+  void Begin(Primitive prim);
   void BitmapHandle(byte handle);
   void BitmapLayout(byte format, uint16_t linestride, uint16_t height);
   void BitmapSize(byte filter, byte wrapx, byte wrapy, uint16_t width, uint16_t height);
@@ -982,16 +994,6 @@ typedef struct {
 #define DST_ALPHA            3
 #define ONE_MINUS_SRC_ALPHA  4
 #define ONE_MINUS_DST_ALPHA  5
-
-#define BITMAPS              1
-#define POINTS               2
-#define LINES                3
-#define LINE_STRIP           4
-#define EDGE_STRIP_R         5
-#define EDGE_STRIP_L         6
-#define EDGE_STRIP_A         7
-#define EDGE_STRIP_B         8
-#define RECTS                9
 
 #define OPT_MONO             1
 #define OPT_NODL             2
