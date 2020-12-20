@@ -36,6 +36,8 @@ public:
 
     pinMode(9, OUTPUT);
     digitalWrite(9, HIGH);
+    pinMode(10, OUTPUT);
+    digitalWrite(10, HIGH);
 
     pinMode(cs, OUTPUT);
     digitalWrite(cs, HIGH);
@@ -63,9 +65,9 @@ public:
   }
   void begin1() {
 #if 1
-    delay(220);
+    delay(320);
 #else
-    while ((__rd16(0xc0000UL) & 0xff) != 0x08)
+    while (__rd16(0xc0000UL) == 0xffff)
       ;
 #endif
 
@@ -417,7 +419,9 @@ public:
   }
   void daz_rd(uint8_t *s, size_t n) {
     __end();
-    // XXX
+    digitalWrite(10, LOW);
+    SPI.transfer((char*)s, n);
+    digitalWrite(10, HIGH);
     resume();
   }
 

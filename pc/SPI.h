@@ -107,6 +107,8 @@ static _SPI SPI;
 #define max(a, b)   (((a) > (b)) ? (a) : (b))
 #define abs(x)      (((x) < 0) ? (-(x)) : (x))
 
+#define PSTR(p) (p)
+
 static void pinMode(int, int)
 {
 }
