@@ -420,6 +420,7 @@ public:
   void daz_rd(uint8_t *s, size_t n) {
     __end();
     digitalWrite(10, LOW);
+    memset(s, 0xff, n);
     SPI.transfer((char*)s, n);
     digitalWrite(10, HIGH);
     resume();
