@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2018 by James Bowman <jamesb@excamera.com>
+ * Copyright (C) 2013-2021 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Teensy 3.2,
  * ESP8266 and ESP32.
  */

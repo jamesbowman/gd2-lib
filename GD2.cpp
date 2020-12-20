@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2013-2019 by James Bowman <jamesb@excamera.com>
+ * Copyright (C) 2013-2021 by James Bowman <jamesb@excamera.com>
  * Gameduino 2/3 library for Arduino, Arduino Due, Raspberry Pi,
  * Teensy 3.x/4.0, ESP8266 and ESP32.
  *
@@ -1596,20 +1596,22 @@ void GDClass::get_inputs(void) {
   inputs.touching = (inputs.x != -32768);
   inputs.xytouch.set(PIXELS(inputs.x), PIXELS(inputs.y));
 
-  uint8_t wii_raw[24];
+  uint8_t wii_raw[20];
   GDTR.daz_rd(wii_raw, sizeof(wii_raw));
-  // See https://wiibrew.org/wiki/Wiimote/Extension_Controllers/Classic_Controller
-  for (int i = 0; i < 2; i++) {
-    uint8_t *r = &wii_raw[12 * i];
-    struct _wii *w = &inputs.wii[i];
-    w->active = 1;
-    w->buttons = r[4] | (r[5] << 8);
-    w->l.x = (r[0] & 63);
-    w->l.y = (r[1] & 63);
-    w->r.x = (((r[0] >> 6) & 3) << 3) |
-             (((r[1] >> 6) & 3) << 1) |
-             (((r[2] >> 7) & 1));
-    w->r.y = (r[2] & 31);
+  if (wii_raw[0] == 0xda) {
+    // See https://wiibrew.org/wiki/Wiimote/Extension_Controllers/Classic_Controller
+    for (int i = 0; i < 2; i++) {
+      uint8_t *r = &wii_raw[2 + 12 * i];
+      struct _wii *w = &inputs.wii[i];
+      w->active = 1;
+      w->buttons = r[4] | (r[5] << 8);
+      w->l.x = (r[0] & 63);
+      w->l.y = (r[1] & 63);
+      w->r.x = (((r[0] >> 6) & 3) << 3) |
+               (((r[1] >> 6) & 3) << 1) |
+               (((r[2] >> 7) & 1));
+      w->r.y = (r[2] & 31);
+    }
   }
 
 #ifdef DUMP_INPUTS
