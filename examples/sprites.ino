@@ -20,7 +20,7 @@ void loop()
   byte j = t;
   uint32_t v, r;
 
-  int nspr = min(2001, max(256, 19 * t));
+  int nspr = min(1400, max(256, 19 * t));
 
   const PROGMEM uint32_t *pv = sprites;
   for (int i = 0; i < nspr; i++) {
