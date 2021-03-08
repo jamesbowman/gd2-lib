@@ -64,12 +64,15 @@ public:
     hostcmd(0x68);    // RST_PULSE
   }
   void begin1() {
+  // for (int i = 0; i < 100; i++) { Serial.println(__rd16(0xc0000UL), HEX); delay(10); }
 #if 1
     delay(320);
 #else
     while (__rd16(0xc0000UL) == 0xffff)
       ;
 #endif
+    while ((__rd16(0xc0000UL) & 0xff) != 0x08)
+      ;
 
     // Test point: saturate SPI
     while (0) {
@@ -102,6 +105,8 @@ public:
     // So that FT800,801      FT810-3   FT815,6
     // model       0            1         2
     switch (__rd16(0x0c0000UL) >> 8) {
+    case 0x00:
+    case 0x01: ft8xx_model = 0; break;
     case 0x10:
     case 0x11:
     case 0x12:
@@ -110,6 +115,9 @@ public:
     case 0x16: ft8xx_model = 2; break;
     default:   ft8xx_model = 2; break;
     }
+    REPORT(ft8xx_model);
+    uint16_t x = __rd16(0x0c0000UL);
+    REPORT(x);
 
     wp = 0;
     freespace = 4096 - 4;
