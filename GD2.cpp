@@ -11,7 +11,7 @@
 #if !defined(__SAM3X8E__)
 #include "EEPROM.h"
 #endif
-#define VERBOSE       0
+// #define VERBOSE       1
 #include <GD2.h>
 
 #ifdef DUMPDEV
