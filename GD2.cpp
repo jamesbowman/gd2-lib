@@ -1481,6 +1481,21 @@ uint32_t GDClass::cmd_flashfast(uint32_t &r) {
   return r;
 }
 
+void GDClass::cmd_flashspidesel() {
+  cFFFFFF(0x4b);
+}
+
+void GDClass::cmd_flashspitx(uint32_t num){
+  cFFFFFF(0x4c);
+  cI(num);
+}
+
+void GDClass::cmd_flashspirx(uint32_t ptr, uint32_t num){
+  cFFFFFF(0x4d);
+  cI(ptr);
+  cI(num);
+}
+
 // XXX to do: cmd_rotate_around cmd_inflate2
 
 void GDClass::cmd_setrotate(uint32_t r) {

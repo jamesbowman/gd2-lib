@@ -703,6 +703,9 @@ public:
   void cmd_flashdetach();
   void cmd_flashattach();
   uint32_t cmd_flashfast(uint32_t &r);
+  void cmd_flashspidesel();
+  void cmd_flashspitx(uint32_t num);
+  void cmd_flashspirx(uint32_t ptr, uint32_t num);
 
   byte rd(uint32_t addr);
   void wr(uint32_t addr, uint8_t v);
